@@ -1,0 +1,75 @@
+.episodes {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-height: 0;
+    margin-top: 12px;
+    overflow-y: auto;
+}
+
+button.episode,
+button.seen{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    appearance: none;
+    border: 0;
+    background-color: transparent;
+}
+
+.episode h3{
+    text-align: left;
+    margin: 2px 0;
+    width: 100%;
+}
+
+.episode img{
+    width: 20px;
+}
+
+.episode-meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: auto;
+}
+
+.episode-progress {
+    color: var(--text-secondary, #aaa);
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.top-row-right select{
+    border: 1px solid var(--lighter-background-color);
+    height: 30px;
+    background-color: transparent;
+    border-radius: 0.3rem;
+}
+
+.top-row{
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.top-row h3{
+    margin: 5px 0;
+}
+
+.top-row-right{
+    display: flex;
+    margin-left: auto;
+    justify-content: center;
+    justify-items: center;
+}
+
+.top-row-right img {
+    width: 30px;
+    justify-self: center;
+    cursor: pointer;
+}
+
+

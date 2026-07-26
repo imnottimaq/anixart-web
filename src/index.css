@@ -1,0 +1,140 @@
+:root, [data-theme="dark"] {
+  --background-color: #161616;
+  --card-bg: #202126;
+  --lighter-background-color: #2a2c33;
+  --text-color: #f4f5f7;
+  --text-secondary: #aeb3bd;
+  --border-color: #383b44;
+  --accent-color: #e5e4df;
+  --lighter-accent-color: #f3f2ee;
+  --accent-text-color: #121212;
+
+  --status-watching: #27ae60;
+  --status-plan: #9b51e0;
+  --status-completed: #2f80ed;
+  --status-hold: #f2994a;
+  --status-dropped: #eb5757;
+  --status-favorite: #ffbf40;
+  --player-controls-background: rgb(0,0,0, 50%)
+}
+
+[data-theme="light"] {
+  --background-color: #ffffff;
+  --lighter-background-color: #e8e9ed;
+  --text-color: #1d1f24;
+  --text-secondary: #686e7b;
+  --card-bg: #f7f8fa;
+  --border-color: #d5d8df;
+  --accent-color: #FF6060;
+  
+  --lighter-accent-color: #ff8a8a;
+  --status-watching: #6fcf87;
+  --status-plan: #c28ae9;
+  --status-completed: #82a9dc;
+  --status-hold: #f0bf63;
+  --status-dropped: #e77b7b;
+  --status-favorite: #ffca61;
+  --player-controls-background: rgb(0,0,0, 50%)
+}
+
+@font-face {
+  font-family: 'Proxima Nova';
+  src: url('./assets/fonts/ProximaNovaRegular.woff') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'Proxima Nova';
+  src: url('./assets/fonts/ProximaNovaBold.woff') format('woff2');
+  font-weight: 700; 
+  font-style: normal;
+  font-display: swap;
+}
+
+body {
+  background-color: var(--background-color);
+  color: var(--text-color);
+  transition: background-color 0.3s, color 0.3s;
+  font-family: 'Proxima Nova', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+h1 {
+  font-size: 56px;
+  letter-spacing: -1.68px;
+  margin: 32px 0;
+  @media (max-width: 1024px) {
+    font-size: 36px;
+    margin: 20px 0;
+  }
+}
+
+h2 {
+  font-size: 24px;
+  line-height: 118%;
+  letter-spacing: -0.24px;
+  margin: 0 0 8px;
+  @media (max-width: 1024px) {
+    font-size: 20px;
+  }
+}
+
+p {
+  margin: .25rem;
+}
+
+button, input, select, textarea {
+  font-family: inherit;
+}
+
+.no-link-decoration {
+  text-decoration: none;
+  color: inherit;
+}
+
+.flex-column {
+  display: flex;
+  flex-direction: column;
+}
+
+.flex-row {
+  display: flex;
+  flex-direction: row;
+}
+
+.flex-row-center {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.flex-row-flex-start {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.flex-row-flex-end {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+}
+
+.flex-column-center {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.flex-column-flex-start {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.flex-column-flex-end {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}

@@ -1,0 +1,31 @@
+.release-card {
+    display: flex;
+    flex-direction: row;
+    margin: 10px 0px
+}
+.release-card img {
+    max-height: 100px;
+    aspect-ratio: 75 / 106;
+    border-radius: 0.5rem;
+    object-fit: cover;
+    align-self: center;
+    margin-right: 5px
+}
+
+.title {
+    font-weight: bold;
+    font-size:medium;
+}
+
+.category {
+    display: flex;
+    flex-direction: row;
+    border-radius: 0.3rem;
+}
+
+.category p {
+    padding: 1px 5px;
+    background-color: var(--lighter-background-color);
+}
+
+

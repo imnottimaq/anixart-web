@@ -1,0 +1,49 @@
+.card {
+  min-width: 0;
+  border-radius: 1rem;
+  font-size: small;
+  padding: 10px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.poster {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 75 / 106;
+  overflow: hidden;
+  border-radius: 0.5rem;
+}
+
+.poster img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.list-status {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  width: 100%;
+  padding: 6px 8px;
+  box-sizing: border-box;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  line-height: 1;
+  text-align: center;
+}
+
+.anime-title {
+  font-weight: bold;
+  font-size: medium;
+  text-align: center;
+}
+
+.status-watching { background-color: var(--status-watching); }
+.status-plan { background-color: var(--status-plan); }
+.status-completed { background-color: var(--status-completed); }
+.status-hold { background-color: var(--status-hold); }
+.status-dropped { background-color: var(--status-dropped); }

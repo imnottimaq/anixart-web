@@ -1,0 +1,85 @@
+import { useState, useRef } from 'react';
+import XMarkIcon from '../assets/icons/xmark.svg'
+import styles from './ModalTemplate.module.css'
+
+type ModalAction = {
+    label: string;
+    onClick: () => void;
+    variant?: 'primary' | 'secondary' | 'danger';
+};
+
+type ModalProps = {
+    isOpen: boolean;
+    onClose: () => void;
+
+    title?: string;
+    text?: string;
+    actions?: ModalAction[];
+    children?: React.ReactNode | ((close: () => void) => React.ReactNode);
+
+    size? : "small" | "medium" | "large" | "fullscreen";
+    showCloseButton?: boolean;
+    contentClassName?: string;
+    contentStyle?: React.CSSProperties;
+};
+
+export function Modal({ isOpen, onClose, title, text, actions, children, size, showCloseButton, contentClassName, contentStyle }: ModalProps) {
+    const [isClosing, setIsClosing] = useState(false);
+    const closeTimeoutRef = useRef<number | null>(null);
+
+    const handleClose = () => {
+        if (isClosing) return;
+
+        setIsClosing(true);
+        closeTimeoutRef.current = window.setTimeout(() => {
+            setIsClosing(false);
+            onClose();
+        }, 180);
+        
+    };
+    if (!isOpen) return null;
+
+    return (
+        <div
+        className={`${styles['modal-overlay']} ${isClosing ? styles['modal-overlay-closing'] : ''}`}
+        role="presentation"
+        onMouseDown={handleClose}
+        >
+        <section
+            className={[
+                styles.modal,
+                `${ size ? styles[`size-${size ?? ''}`]: ""}`,
+                contentClassName,
+                isClosing ? styles['modal-closing'] : '',
+            ].filter(Boolean).join(' ')}
+            style={contentStyle}
+            role="dialog"
+            aria-modal="true"
+            aria-label={title ? 'modal-title' : undefined}
+            onMouseDown={(event) => event.stopPropagation()}
+        >
+            {showCloseButton !== false && <button className={styles['close-button']} onClick={handleClose} aria-label="Закрыть">
+                <img alt="Закрыть" src={XMarkIcon}/>
+            </button>}
+
+            {title && <h2 className={styles.title}>{title}</h2>}
+            {text && <p className={styles.text}>{text}</p>}
+            {typeof children === 'function' ? children(handleClose) : children}
+
+            {actions && (
+            <footer className={styles.actions}>
+                {actions.map((action) => (
+                <button
+                    key={action.label}
+                    className={`${styles.action} ${styles[`action-${action.variant ?? 'primary'}`]}`}
+                    onClick={action.onClick}
+                >
+                    {action.label}
+                </button>
+                ))}
+            </footer>
+            )}
+        </section>
+        </div>
+    );
+}

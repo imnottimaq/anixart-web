@@ -1,0 +1,84 @@
+.select {
+    position: relative;
+    width: min(100%, 334px);
+    z-index: 10;
+}
+
+.trigger,
+.option {
+    width: 100%;
+    border: 0;
+    color: var(--text-color);
+    font-size: 15px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+}
+
+.trigger {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 36px;
+    padding: 8px 11px;
+    border: 1px solid var(--border-color);
+    border-radius: 18px;
+    background: var(--background-color);
+}
+
+.trigger:hover,
+.trigger:focus-visible {
+    border-color: var(--text-secondary);
+}
+
+.trigger:focus-visible,
+.option:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.chevron {
+    width: 8px;
+    height: 8px;
+    margin: 0 3px 4px 0;
+    border-top: 2px solid currentColor;
+    border-left: 2px solid currentColor;
+    transform: rotate(45deg);
+    transition: transform 160ms ease;
+}
+
+.chevron-open {
+    margin-top: 4px;
+    margin-bottom: 0;
+    transform: rotate(225deg);
+}
+
+.options {
+    position: absolute;
+    top: calc(100% + 5px);
+    left: 0;
+    width: 100%;
+    overflow: hidden;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--card-bg);
+    box-shadow: 0 14px 34px rgb(0 0 0 / 24%);
+    animation: options-in 140ms ease-out both;
+}
+
+.option {
+    display: block;
+    padding: 8px 11px;
+    background: transparent;
+}
+
+.option:hover,
+.option.selected {
+    background: var(--lighter-background-color);
+}
+
+@keyframes options-in {
+    from { opacity: 0; transform: translateY(-5px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}

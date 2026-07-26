@@ -1,0 +1,159 @@
+.body {
+  display: flex;
+  gap: 20px;
+  padding: 0 20px;
+}
+
+.loading-overlay {
+  z-index: 99;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  pointer-events: none;
+  backdrop-filter: blur(3px);
+  background-color: rgb(0 0 0 / 12%);
+  animation: overlay-in 180ms ease-out both;
+}
+
+.loading-overlay::before {
+  content: '';
+  width: 38px;
+  height: 38px;
+  border: 3px solid color-mix(in srgb, var(--text-color) 22%, transparent);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  box-shadow: 0 0 22px color-mix(in srgb, var(--accent-color) 34%, transparent);
+  animation: loader-spin 780ms linear infinite;
+}
+
+.loading-overlay::after {
+  content: 'Загрузка';
+  position: absolute;
+  top: calc(50% + 33px);
+  color: var(--text-color);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: .04em;
+  animation: loader-text 1.2s ease-in-out infinite;
+}
+
+.side-panel {
+  width: 15vw;
+  position: sticky;
+  gap:5px;
+  top: 64px;
+  display: flex;
+  flex-direction: column;
+  height: calc(100vh - 32px);
+}
+
+.side-panel button {
+  padding: 20px;
+  text-align: left;
+  font-size: large;
+  appearance: none;
+  color: var(--text-color);
+  border-radius: 1rem;
+  border: 0;
+  background-color: transparent;
+}
+
+.side-panel button.active {
+  color: var(--background-color);
+  background-color: var(--accent-color);
+}
+
+.side-panel button:hover {
+  background-color: var(--lighter-background-color);
+}
+
+.side-panel button:hover.active {
+  background-color: var(--lighter-accent-color);
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+.sort-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: 16px;
+}
+
+.releases-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.empty-my-tab {
+  display: grid;
+  min-height: calc(100dvh - 120px);
+  place-items: center;
+}
+
+.configure-button {
+  min-width: 180px;
+  padding: 12px 20px;
+  border: 0;
+  border-radius: 12px;
+  color: var(--background-color);
+  background: var(--accent-color);
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 700;
+  transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.configure-button:hover {
+  background: var(--lighter-accent-color);
+  transform: translateY(-1px);
+}
+
+.configure-button:focus-visible {
+  outline: 2px solid var(--accent-color);
+  outline-offset: 3px;
+}
+
+@keyframes loader-spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes loader-text {
+  0%, 100% { opacity: .52; transform: translateY(0); }
+  50% { opacity: 1; transform: translateY(-2px); }
+}
+
+@media (max-width: 1100px) {
+  .releases-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 760px) {
+  .body {
+    padding: 12px;
+  }
+
+  .side-panel {
+    display: none;
+  }
+
+  .releases-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .loading-overlay::before,
+  .loading-overlay::after {
+    animation: none;
+  }
+}
