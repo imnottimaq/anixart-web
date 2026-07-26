@@ -11,6 +11,10 @@ import RecoverScreen from '../pages/RecoverScreen';
 import NewAccountScreen from '../pages/NewAccountScreen';
 import RandomAnime from '../pages/RandomAnime';
 
+const basename = import.meta.env.BASE_URL === '/'
+    ? undefined
+    : import.meta.env.BASE_URL.replace(/\/$/, '');
+
 export const router = createBrowserRouter([
 {
     path: '/',
@@ -27,4 +31,4 @@ export const router = createBrowserRouter([
     { path: 'random', element: <RandomAnime /> },
     ],
 },
-]);
+], { basename });
