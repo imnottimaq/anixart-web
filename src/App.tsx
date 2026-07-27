@@ -7,9 +7,8 @@ import { UserContext } from './shared/contexts/userContext';
 import { SettingsContext } from './shared/contexts/settingsContext';
 
 function App() {
-  const [userToken, setUserTokenState] = useState<string>(() => {
-    return localStorage.getItem('user_token') || "";
-  });
+  const [userToken, setUserTokenState] = useState<string>(() => localStorage.getItem('user_token') || "");
+  const [userId, setUserIdState] = useState<number>(() => +(localStorage.getItem('user_id') || ""))
   const [settings, setSettings] = useState<AppSettings>(() => {
     const saved = localStorage.getItem('app_settings');
 
@@ -42,10 +41,19 @@ function App() {
       localStorage.removeItem('user_token');
     }
   };
+
+  const setUserId = (id: string | number) => {
+    setUserIdState(+id)
+    if (id) {
+      localStorage.setItem('user_id', id.toString())
+    } else {
+      localStorage.removeItem('user_id')
+    }
+  }
   
   return (
     <SettingsContext.Provider value={{settings, setSettings}}>
-      <UserContext.Provider value={{userToken, setUserToken}}>
+      <UserContext.Provider value={{userToken, setUserToken, userId, setUserId}}>
         <RouterProvider router={router} />
       </UserContext.Provider>
     </SettingsContext.Provider>

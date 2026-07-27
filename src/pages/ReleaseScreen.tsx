@@ -216,15 +216,15 @@ export default function ReleaseScreen(){
                                     "Китай": <div className={styles["china-flag"]}></div>
                                 } as Record<string, React.ReactNode>)[animeData.country]
                                 }
-                                <p>{animeData.country}, {animeData.year} г.</p>
+                                <p>{animeData.country}, {(["зима","весна","лето","осень"])[animeData.season]} {animeData.year} г.</p>
                                 </div>
                                 <div className="flex-row-center">
                                     <img src={albumIcon} className={styles['icon']} />
-                                    <p>{animeData.episodes_released} из {animeData.episodes_total || "?"} эп.</p>
+                                    <p>{animeData.episodes_released} из {animeData.episodes_total || "?"} эп.{animeData.duration ? `, по ~${animeData.duration} мин.` : ""}</p>
                                 </div>
                                 <div className="flex-row-center">
                                     <img src={calendarIcon} className={styles['icon']} />
-                                    <p>{animeData.category.name}, {animeData.status.name}</p>
+                                    <p>{animeData.category.name}, {animeData.status.name.toLocaleLowerCase()}</p>
                                 </div>
                                 <div className="flex-row-center"> 
                                     <img src={peopleIcon} className={styles['icon']} />
@@ -238,7 +238,7 @@ export default function ReleaseScreen(){
                     </div>
                     {animeData.comments.length !== 0 && <div>
                         <h3>Коментарии</h3>
-                        {animeData.comments.map((comment: CommentType) => (<Comment key={comment.id} comment={comment}/>))}
+                        {animeData.comments.map((comment: CommentType) => (<Comment key={comment.id} comment={comment} releaseId={animeData.id}/>))}
                         {
                         // <button>Смотреть все</button> //TODO: реализовать
                         }

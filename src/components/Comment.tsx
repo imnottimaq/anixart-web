@@ -3,15 +3,19 @@ import verifiedBadge from '../assets/icons/verified.svg'
 import upArrowIcon from '../assets/icons/up-arrow.svg'
 import downArrowIcon from '../assets/icons/down-arrow.svg'
 import replyIcon from '../assets/icons/reply.svg'
+import arrowDownIcon from '../assets/icons/arrow-down.svg'
 import { useState } from 'react'
+import { Modal } from '../modals/ModalTemplate'
 
 export interface CommentProps {
-    comment: CommentType
+    comment: CommentType,
+    releaseId: number
 }
 
 export interface CommentType {
     id: number,
     profile: {
+        id: number,
         login: string,
         avatar: string,
         badge_name: string,
@@ -27,13 +31,14 @@ export interface CommentType {
 }
 
 interface CommentRepliesResponse {
-    content: CommentType[]
-    total_count: number
+    content: CommentType[],
+    total_count: number,
     total_page_count: number
 }
 
-export default function Comment({ comment }: CommentProps) {
+export default function Comment({ comment, releaseId }: CommentProps) {
     const [isRepliesShown, setIsRepliesShown] = useState(false);
+    const [isUnimplementedModalShown, setIsUnimplementedModalShown] = useState(false);
     const [replies, setReplies] = useState<CommentType[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
@@ -60,10 +65,16 @@ export default function Comment({ comment }: CommentProps) {
     };
 
     return (
+        <>
         <div className={styles["comment"]}>
             <div className="flex-row-center">
                 <img src={`https://images.weserv.nl/?url=${comment.profile.avatar}`} className={styles['avatar']} alt="" />
                 <p style={{ fontWeight: 'bold' }}>{comment.profile.login}</p>
+                <div className={styles['reply-div']} onClick={() => setIsUnimplementedModalShown(true)}>
+                    <img src={replyIcon} className={styles['arrow']}/>
+                    <a>Ответить</a>
+                </div>
+                
                 {comment.profile.is_verified && <img src={verifiedBadge} className={styles['verified-badge']} alt="" />}
                 <p>{formatCustomDate(comment.timestamp)}</p>
             </div>
@@ -73,9 +84,9 @@ export default function Comment({ comment }: CommentProps) {
             </div>
             
             <div className={styles['vote']}>
-                <img src={upArrowIcon} className={styles['arrow']} onClick={HandleVote} />
+                <img src={upArrowIcon} className={styles['arrow']} onClick={() => setIsUnimplementedModalShown(true) }/>
                 <p>{comment.vote_count}</p>
-                <img src={downArrowIcon} className={styles['arrow']} onClick={HandleVote} />
+                <img src={downArrowIcon} className={styles['arrow']} onClick={() => setIsUnimplementedModalShown(true)} />
             </div>
             {comment.reply_count !== 0 && (
                 <div 
@@ -83,7 +94,7 @@ export default function Comment({ comment }: CommentProps) {
                     onClick={toggleReplies}
                     style={{ cursor: 'pointer' }}
                 >
-                    <img src={replyIcon} className={styles['arrow']} alt="" />
+                    <img src={arrowDownIcon} className={styles['arrow']} alt="" />
                     <p>
                         {isLoading ? "Загрузка..." : (
                             <>
@@ -97,11 +108,21 @@ export default function Comment({ comment }: CommentProps) {
             {isRepliesShown && replies.length > 0 && (
                 <div className={styles.reply} style={{ marginLeft: '20px' }}>
                     {replies.map((reply) => (
-                        <Comment key={reply.id} comment={reply} />
+                        <Comment key={reply.id} comment={reply} releaseId={releaseId} />
                     ))}
                 </div>
             )}
         </div>
+        <Modal title="Внимание"
+            text="Данный функционал отключен из-за невозможности его реализации. Воспользуйтесь официальным приложением Anixart для данного действия."
+            isOpen={isUnimplementedModalShown}
+            onClose={() => setIsUnimplementedModalShown(false)}
+            actions={[{
+                label: "Закрыть",
+                onClick: () => setIsUnimplementedModalShown(false),
+                variant: 'primary'
+            }]}/>
+        </>
     )
 }
 
@@ -149,8 +170,4 @@ function formatCustomDate(dateInput: Date | string | number): string {
     }
     
     return new Intl.DateTimeFormat('ru-RU', options).format(date);
-}
-
-function HandleVote(){
-    alert("Эта функция отключена из-за невозможности реализации. Перейдите в официальное приложение Anixart чтобы проголосовать.")
 }

@@ -10,7 +10,9 @@ export interface Anime {
   grade: number;
   description: string;
   favorites_count: number;
+  duration: number;
   country: string;
+  season: number;
   year: string;
   genres: string;
   studio: string;
@@ -58,4 +60,11 @@ export interface Filter {
   season?: 1|2|3|4; // 1 - Зима, 2 - Весна, 3 - Лето, 4 - Осень
   age_ratings?: 1|2|3|4|5; //1 - 0+, 2 - 6+, 3 - 12+, 4 - 16+, 5 - 18+
   sort?: 0|1|2|3; // 0 - По дате добавления, 1 - По рейтингу, 2 - По годам, 3 - По популярности
+}
+
+export interface Profile {
+  id: number;
+  avatar: string;
+  history: Anime[];
+  // TODO: расширить
 }

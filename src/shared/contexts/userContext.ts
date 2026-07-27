@@ -2,7 +2,9 @@ import { createContext, useContext } from "react";
 
 export const UserContext = createContext<{
   userToken: string;
-  setUserToken: (token: string) => void; 
+  userId: number;
+  setUserToken: (token: string) => void;
+  setUserId: (id: string | number) => void; 
 }| null>(null)
 
 export function useUser(){

@@ -6,7 +6,7 @@ import styles from './LoginScreen.module.css'
 export default function LoginScreen(){
     const [username, setUsername] = useState<string>("")
     const [password, setPassword] = useState<string>("")
-    const {userToken, setUserToken} = useUser()
+    const {userToken, setUserToken, setUserId} = useUser()
     const navigate = useNavigate()
 
     if (userToken !== "") navigate('/account')
@@ -30,13 +30,13 @@ export default function LoginScreen(){
                     <Link to='/account/create'>Зарегистрироваться</Link>
                 </div>
                 
-                <button onClick={() => {handleLogin(username, password, setUserToken)}}>Войти</button>
+                <button onClick={() => {handleLogin(username, password, setUserToken, setUserId)}}>Войти</button>
             </div>
         </div>
     )
 }
 
-async function handleLogin(username: string, password: string, setUserToken: (token:string) => void){
+async function handleLogin(username: string, password: string, setUserToken: (token:string) => void, setUserId: (id:number) => void){
     const response = await fetch(`https://api-s.anixsekai.com/auth/signIn?login=${username}&password=${password}`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
@@ -45,6 +45,7 @@ async function handleLogin(username: string, password: string, setUserToken: (to
     if (response.ok) {
         const data = await response.json()
         setUserToken(data.profileToken.token)
+        setUserId(data.profileToken.id)
         console.log(data)
         alert(`Logged in:`)
         return
