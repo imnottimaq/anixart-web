@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useParams, useLocation, useNavigate } from "react-router-dom"
 import { Swiper, SwiperSlide } from 'swiper/react';
 import { Navigation, Pagination } from 'swiper/modules';
@@ -19,23 +19,107 @@ import calendarIcon from "../assets/icons/calendar.svg"
 import tagsIcon from "../assets/icons/tags.svg"
 import albumIcon from "../assets/icons/album-collection.svg"
 import favoriteIcon from '../assets/icons/bookmark.svg'
-import { setPlayerSession } from '../shared/playerSession';
+import sendIcon from '../assets/icons/send.svg'
 
+import { setPlayerSession } from '../shared/playerSession'
+
+const AGENT_PROXY = "https://kodik-proxy.tima3050505.workers.dev/agentproxy?url="
 
 export default function ReleaseScreen(){
     const {id} = useParams<{id: string}>();
-    const {userToken} = useUser()
-    const {settings} = useSettings()
+    const {userToken, setUserId} = useUser();
+    const {settings} = useSettings();
     const navigate = useNavigate();
     const location = useLocation();
     const partialData = location.state?.partialAnime || null;
+
     const [animeData, setAnimeData] = useState<Anime>(partialData);
     const [screenshots, setScreenshots] = useState<string[]>([]);
     const [isDubScreenOpen, setIsDubScreenOpen] = useState(false);
     const [overallListCount, setOverallListCount] = useState(0);
     const requestKey = `${id ?? ''}:${userToken}`;
     const [loadedRequestKey, setLoadedRequestKey] = useState<string | null>(null);
+    const [commentText, setCommentText] = useState('');
+    const [commentSpoiler, setCommentSpoiler] = useState(false);
+    const [isSendingComment, setIsSendingComment] = useState(false);
+    const [commentError, setCommentError] = useState<string | null>(null);
+    const [replyTarget, setReplyTarget] = useState<CommentType | null>(null);
+    const [newReply, setNewReply] = useState<{ parentCommentId: number; comment: CommentType } | null>(null);
+    const [editTarget, setEditTarget] = useState<CommentType | null>(null);
+    const [editedComment, setEditedComment] = useState<{ commentId: number; message: string; spoiler: boolean } | null>(null);
+    const commentInputRef = useRef<HTMLTextAreaElement>(null);
+
     const isReleaseLoading = loadedRequestKey !== requestKey;
+    const isCommentTooShort = commentText.trim().length < 5;
+
+    const startReply = (comment: CommentType) => {
+        setReplyTarget(comment);
+        setEditTarget(null);
+        setCommentText(`${comment.profile.login}, `);
+        setCommentError(null);
+        window.requestAnimationFrame(() => commentInputRef.current?.focus());
+    };
+
+    const startEdit = (comment: CommentType) => {
+        setEditTarget(comment);
+        setReplyTarget(null);
+        setCommentText(comment.message);
+        setCommentSpoiler(comment.is_spoiler);
+        setCommentError(null);
+        window.requestAnimationFrame(() => commentInputRef.current?.focus());
+    };
+
+    const sendComment = async () => {
+        const message = commentText.trim();
+        if (message.length < 5 || isSendingComment) {
+            setCommentError('Комментарий должен содержать минимум 5 символов.');
+            return;
+        }
+
+        if (!userToken) {
+            setCommentError('Войдите в аккаунт, чтобы отправить комментарий.');
+            return;
+        }
+
+        setIsSendingComment(true);
+        setCommentError(null);
+
+        try {
+            if (editTarget) {
+                await EditComment(editTarget.id, message, commentSpoiler, userToken);
+                setEditedComment({ commentId: editTarget.id, message, spoiler: commentSpoiler });
+            } else {
+                const result = await SendCommentOrReply(
+                    animeData.id,
+                    message,
+                    commentSpoiler,
+                    userToken,
+                    replyTarget?.id,
+                    replyTarget?.profile.id,
+                );
+                const createdComment = result.comment;
+                if (createdComment) {
+                    setUserId(createdComment.profile.id);
+                    if (replyTarget) {
+                        setNewReply({ parentCommentId: replyTarget.id, comment: createdComment });
+                    } else {
+                        setAnimeData((previous) => ({
+                            ...previous,
+                            comments: [createdComment, ...previous.comments],
+                        }));
+                    }
+                }
+            }
+            setCommentText('');
+            setCommentSpoiler(false);
+            setReplyTarget(null);
+            setEditTarget(null);
+        } catch (error) {
+            setCommentError(error instanceof Error ? error.message : 'Не удалось отправить комментарий.');
+        } finally {
+            setIsSendingComment(false);
+        }
+    };
 
     useEffect(() => {
         GetRelease(id, userToken)
@@ -44,6 +128,7 @@ export default function ReleaseScreen(){
                 setAnimeData(release);
                 setOverallListCount(release.watching_count + release.plan_count + release.completed_count + release.hold_on_count + release.dropped_count);
                 setScreenshots(release.screenshot_images.map(item => `https://images.weserv.nl/?url=${item}`));
+                console.log(data)
             })
             .catch(error => console.error('Не удалось загрузить релиз:', error))
             .finally(() => setLoadedRequestKey(requestKey));
@@ -236,13 +321,71 @@ export default function ReleaseScreen(){
                                 </div>
                             </div>
                     </div>
-                    {animeData.comments.length !== 0 && <div>
-                        <h3>Коментарии</h3>
-                        {animeData.comments.map((comment: CommentType) => (<Comment key={comment.id} comment={comment} releaseId={animeData.id}/>))}
+                    <section className={styles['comments-section']}>
+                        <div className={styles['comments-heading']}>
+                            <h3>Комментарии</h3>
+                        </div>
+                        <form className={styles['comment-area']} onSubmit={(event) => {
+                            event.preventDefault();
+                            void sendComment();
+                        }}>
+                            {replyTarget && <div className={styles['reply-context']}>
+                                <span>Ответ для <strong>{replyTarget.profile.login}</strong></span>
+                                <button type="button" onClick={() => setReplyTarget(null)} aria-label="Отменить ответ">×</button>
+                            </div>}
+                            {editTarget && <div className={styles['reply-context']}>
+                                <span>Редактирование комментария</span>
+                                <button type="button" onClick={() => setEditTarget(null)} aria-label="Отменить редактирование">×</button>
+                            </div>}
+                            <textarea
+                                ref={commentInputRef}
+                                placeholder="Напишите комментарий…"
+                                value={commentText}
+                                maxLength={1000}
+                                onChange={(event) => {
+                                    setCommentText(event.target.value);
+                                    setCommentError(null);
+                                }}
+                            />
+                            <div className={styles['comment-controls']}>
+                                <label className={styles['spoiler-toggle']}>
+                                    <input
+                                        type="checkbox"
+                                        checked={commentSpoiler}
+                                        onChange={(event) => setCommentSpoiler(event.target.checked)}
+                                    />
+                                    <span>Спойлер</span>
+                                </label>
+                                <span className={styles['comment-counter']}>
+                                    {isCommentTooShort ? 'Минимум 5 символов' : `${commentText.length}/1000`}
+                                </span>
+                                <button
+                                    type="submit"
+                                    className={styles['send-btn']}
+                                    disabled={isCommentTooShort || isSendingComment}
+                                >
+                                    <img src={sendIcon} alt="" />
+                                    {isSendingComment ? 'Отправка…' : 'Отправить'}
+                                </button>
+                            </div>
+                            {commentError && <p className={styles['comment-error']}>{commentError}</p>}
+                        </form>
+                        {animeData.comments.length === 0 && <p className={styles['empty-comments']}>Пока нет комментариев. Будь первым.</p>}
+                        {animeData.comments.map((comment: CommentType) => (
+                            <Comment
+                                key={comment.id}
+                                comment={comment}
+                                releaseId={animeData.id}
+                                onReply={startReply}
+                                onEdit={startEdit}
+                                newReply={newReply}
+                                editedComment={editedComment}
+                            />
+                        ))}
                         {
                         // <button>Смотреть все</button> //TODO: реализовать
                         }
-                    </div>}
+                    </section>
                 </div>
             </div>
             {isDubScreenOpen && <DubSelectModal 
@@ -295,4 +438,41 @@ async function HandleFavorite(releaseId: number, token: string) {
     
     if (data.code === 0) return data;
     return data;
+}
+
+type CommentAddResponse = {
+    code: number;
+    comment: CommentType | null;
+}
+
+async function SendCommentOrReply(releaseId: number, message: string, spoiler: boolean, token: string, parentCommentId?: number, replyToProfileId?: number): Promise<CommentAddResponse>{
+    const targetUrl = `https://api-s.anixsekai.com/release/comment/add/${releaseId}?token=${token}`
+    const response = await fetch(`${AGENT_PROXY}${encodeURIComponent(targetUrl)}`,{
+        method: 'POST',
+        headers: {'Content-Type' : 'application/json'},
+        body: JSON.stringify({
+            parentCommentId: parentCommentId ?? null,
+            replyToProfileId: replyToProfileId ?? null,
+            message: message,
+            spoiler: spoiler
+        })
+    })
+    const data = await response.json() as CommentAddResponse
+    if (data.code === 0) return data
+    throw new Error(`Не удалось отправить комментарий: ${JSON.stringify(data)}`)
+}
+
+async function EditComment(commentId: number, message: string, spoiler: boolean, token: string) {
+    const targetUrl = `https://api-s.anixsekai.com/release/comment/edit/${commentId}?token=${token}`;
+    const response = await fetch(`${AGENT_PROXY}${encodeURIComponent(targetUrl)}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message, spoiler }),
+    });
+    if (!response.ok) throw new Error(`Не удалось отредактировать комментарий: ${response.status}`);
+
+    const data: { code?: number } = await response.json();
+    if (data.code !== undefined && data.code !== 0) {
+        throw new Error(`Не удалось отредактировать комментарий: code ${data.code}`);
+    }
 }

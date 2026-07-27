@@ -33,6 +33,34 @@ function App() {
     localStorage.setItem('app_settings', JSON.stringify(settings));
   }, [settings]);
 
+  useEffect(() => {
+    if (!userToken) return;
+
+    let isCancelled = false;
+
+    const loadCurrentProfileId = async () => {
+      try {
+        const response = await fetch(`https://api-s.anixsekai.com/profile/info?token=${userToken}`);
+        if (!response.ok) return;
+
+        const data: { id?: number | string; profile?: { id?: number | string } } = await response.json();
+        const profileId = Number(data.profile?.id ?? data.id);
+        if (!isCancelled && Number.isFinite(profileId) && profileId > 0) {
+          setUserIdState(profileId);
+          localStorage.setItem('user_id', String(profileId));
+        }
+      } catch (error) {
+        console.error('Не удалось определить ID текущего профиля:', error);
+      }
+    };
+
+    void loadCurrentProfileId();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [userToken]);
+
   const setUserToken = (token: string) => {
     setUserTokenState(token);
     if (token) {

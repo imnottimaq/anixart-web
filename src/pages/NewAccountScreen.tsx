@@ -12,7 +12,7 @@ export default function NewAccountScreen() {
     const navigate = useNavigate()
     
     const [isFirstStageCompleted, setIsFirstStageCompleted] = useState(false)
-    const {userToken, setUserToken } = useUser()
+    const {userToken, setUserToken, setUserId } = useUser()
     const [hash, setHash] = useState("")
     const [code, setCode] = useState("")
     const [errorMsg, setErrorMsg] = useState("")
@@ -94,6 +94,7 @@ export default function NewAccountScreen() {
                                 hash,
                                 code,
                                 setUserToken,
+                                setUserId,
                                 setErrorMsg
                             )}
                         >
@@ -148,6 +149,7 @@ async function handleCreateSecondStage(
     hash: string, 
     code: string, 
     setUserToken: (token: string) => void,
+    setUserId: (id: number) => void,
     setErrorMsg: (msg: string) => void
 ) {
     setErrorMsg("");
@@ -163,6 +165,7 @@ async function handleCreateSecondStage(
         if (data.code !== 0) throw new Error(data.message || "Неверный код или не удалось создать аккаунт");
         if (data.profileToken && data.profileToken.token) {
             setUserToken(data.profileToken.token);
+            setUserId(data.profileToken.id);
             alert("Аккаунт успешно создан! Вы вошли в аккаунт.");
         }
     } catch (err: any) {

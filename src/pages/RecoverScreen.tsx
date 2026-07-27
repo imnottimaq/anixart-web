@@ -11,7 +11,7 @@ export default function RecoverScreen() {
     const navigate = useNavigate()
     
     const [isFirstStageCompleted, setIsFirstStageCompleted] = useState(false)
-    const {userToken, setUserToken } = useUser()
+    const {userToken, setUserToken, setUserId } = useUser()
     const [hash, setHash] = useState("")
     const [code, setCode] = useState("")
     const [errorMsg, setErrorMsg] = useState("")
@@ -83,6 +83,7 @@ export default function RecoverScreen() {
                                 hash,
                                 code,
                                 setUserToken,
+                                setUserId,
                                 setErrorMsg
                             )}
                         >
@@ -134,6 +135,7 @@ async function handleRecoverSecondStage(
     hash: string, 
     code: string, 
     setUserToken: (token: string) => void,
+    setUserId: (id: number) => void,
     setErrorMsg: (msg: string) => void
 ) {
     setErrorMsg("");
@@ -149,6 +151,7 @@ async function handleRecoverSecondStage(
         if (data.code !== 0) throw new Error(data.message || "Неверный код или не удалось восстановить пароль");
         if (data.profileToken && data.profileToken.token) {
             setUserToken(data.profileToken.token);
+            setUserId(data.profileToken.id);
             alert("Пароль успешно изменен! Вы вошли в аккаунт.");
         }
     } catch (err: any) {

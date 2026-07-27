@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState } from 'react';
 import XMarkIcon from '../assets/icons/xmark.svg'
 import styles from './ModalTemplate.module.css'
 
@@ -25,17 +25,15 @@ type ModalProps = {
 
 export function Modal({ isOpen, onClose, title, text, actions, children, size, showCloseButton, contentClassName, contentStyle }: ModalProps) {
     const [isClosing, setIsClosing] = useState(false);
-    const closeTimeoutRef = useRef<number | null>(null);
 
     const handleClose = () => {
         if (isClosing) return;
 
         setIsClosing(true);
-        closeTimeoutRef.current = window.setTimeout(() => {
+        window.setTimeout(() => {
             setIsClosing(false);
             onClose();
         }, 180);
-        
     };
     if (!isOpen) return null;
 

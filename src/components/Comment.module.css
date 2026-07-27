@@ -11,6 +11,73 @@
     object-fit: cover;
 }
 
+.comment-menu {
+    position: relative;
+    align-self: stretch;
+    display: flex;
+    align-items: center;
+}
+
+.comment-menu-button {
+    width: 26px;
+    height: 30px;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    cursor: pointer;
+    color: var(--text-color);
+    background: transparent;
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    line-height: 1;
+}
+
+.comment-menu-button:hover,
+.comment-menu-button[aria-expanded='true'] {
+    background: var(--lighter-background-color);
+}
+
+.comment-menu-options {
+    position: absolute;
+    top: calc(100% + 2px);
+    left: 0;
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    min-width: 142px;
+    padding: 5px;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    box-shadow: 0 10px 25px rgb(0 0 0 / 18%);
+    background: var(--background-color);
+}
+
+.comment-menu-options button {
+    padding: 8px 9px;
+    border: 0;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-color);
+    background: transparent;
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+}
+
+.comment-menu-options button:hover {
+    background: var(--lighter-background-color);
+}
+
+.comment-menu-options button:disabled {
+    cursor: wait;
+    opacity: .55;
+}
+
+.comment-menu-options .delete-comment-option {
+    color: var(--status-dropped);
+}
+
 .verified-badge {
     width: 20px;
     height: 20px;
@@ -45,6 +112,109 @@
     font-size: small;
     justify-content: center;
     text-align: center;
+}
+
+.spoiler-message {
+    position: relative;
+    width: 100%;
+    min-height: 1.5em;
+}
+
+.spoiler-message-covered {
+    overflow: hidden;
+    border-radius: 8px;
+    background: var(--lighter-background-color);
+}
+
+.spoiler-message p {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.spoiler-message-covered p {
+    padding: 8px 10px;
+}
+
+.spoiler-message-hidden {
+    opacity: .62;
+    filter: blur(7px);
+    transform: scale(1.015);
+    user-select: none;
+}
+
+.spoiler-reveal {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    width: 100%;
+    min-height: 36px;
+    padding: 7px 12px;
+    border: 0;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: var(--text-color);
+    background: color-mix(in srgb, var(--background-color) 72%, transparent);
+    backdrop-filter: blur(2px);
+    font: inherit;
+    transition: background-color 140ms ease;
+}
+
+.spoiler-reveal-title {
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.spoiler-reveal-hint {
+    color: color-mix(in srgb, var(--text-color) 62%, transparent);
+    font-size: 11px;
+}
+
+.spoiler-reveal:hover {
+    background: color-mix(in srgb, var(--accent-color) 15%, var(--background-color));
+}
+
+.reply-textarea {
+    border: 2px solid var(--lighter-background-color);
+    resize: none;
+    border-radius: .5rem;
+    height: 20vh;
+}
+
+.reply-textarea:focus {
+    outline: none;
+    border: 2px solid var(--accent-color);
+}
+
+.reply-spoiler {
+    margin-top: 10px;
+}
+
+.reply-spoiler input[type='checkbox']{
+    accent-color: var(--accent-color);
+}
+
+.reply-btn {
+    cursor: pointer;
+    padding: 5px;
+    padding: 0;
+    margin: 10px 0px;
+    padding: 12px 2px;
+    border: 0px;
+    border-radius: 2rem;
+    appearance: none;
+    background-color: var(--accent-color);
+    color: var(--background-color);
+}
+
+.positive {
+    filter: invert(26%) sepia(96%) saturate(1513%) hue-rotate(95deg) brightness(94%) contrast(104%);
+}
+
+.negative {
+    filter: invert(27%) sepia(96%) saturate(7200%) hue-rotate(3deg) brightness(104%) contrast(128%);
 }
 
 .vote {

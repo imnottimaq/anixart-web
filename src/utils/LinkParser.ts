@@ -18,7 +18,7 @@ import type { VideoSources, VideoStreamType } from '../shared/types/video';
  * Качество
  */
 
-const PROXY_BASE = "https://kodik-proxy.tima3050505.workers.dev/?url="; //
+const PROXY_BASE = "https://kodik-proxy.tima3050505.workers.dev/corsproxy?url="; //
 
 async function proxyFetch(targetUrl: string, options?: RequestInit) {
     const proxiedUrl = `${PROXY_BASE}${encodeURIComponent(targetUrl)}`;
