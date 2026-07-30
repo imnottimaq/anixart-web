@@ -7,46 +7,30 @@ import arrowDownIcon from '../assets/icons/arrow-down.svg'
 import { useEffect, useState } from 'react'
 import { useUser } from '../shared/contexts/userContext'
 import { Modal } from '../modals/ModalTemplate'
+import { type Comment } from '../shared/types/api'
+import RemoteImage from './RemoteImage'
 
 const AGENT_PROXY = "https://kodik-proxy.tima3050505.workers.dev/agentproxy?url="
 
 export interface CommentProps {
-    comment: CommentType,
+    comment: Comment,
     releaseId: number,
-    onReply: (comment: CommentType) => void,
-    onEdit: (comment: CommentType) => void,
-    newReply?: { parentCommentId: number; comment: CommentType } | null,
+    onReply: (comment: Comment) => void,
+    onEdit: (comment: Comment) => void,
+    newReply?: { parentCommentId: number; comment: Comment } | null,
     editedComment?: { commentId: number; message: string; spoiler: boolean } | null
 }
 
-export interface CommentType {
-    id: number,
-    profile: {
-        id: number,
-        login: string,
-        avatar: string,
-        badge_name: string,
-        badge_url: string,
-        is_verified: boolean,
-    },
-    message: string,
-    timestamp: string,
-    vote_count: number,
-    is_spoiler: boolean,
-    vote: number,
-    reply_count: number
-}
-
 interface CommentRepliesResponse {
-    content: CommentType[],
+    content: Comment[],
     total_count: number,
     total_page_count: number
 }
 
-export default function Comment({ comment, releaseId, onReply, onEdit, newReply, editedComment }: CommentProps) {
+export default function CommentComponent({ comment, releaseId, onReply, onEdit, newReply, editedComment }: CommentProps) {
     const [isRepliesShown, setIsRepliesShown] = useState(false);
     const userToken = useUser()
-    const [replies, setReplies] = useState<CommentType[]>([]);
+    const [replies, setReplies] = useState<Comment[]>([]);
     const [isLoading, setIsLoading] = useState(false);
     const [replyCount, setReplyCount] = useState(comment.reply_count);
     const [currentVote, setCurrentVote] = useState(comment.vote);
@@ -155,16 +139,19 @@ export default function Comment({ comment, releaseId, onReply, onEdit, newReply,
     return (
         <>
         <div className={styles["comment"]}>
-            <div className="flex-row-center">
-                <img src={`https://images.weserv.nl/?url=${comment.profile.avatar}`} className={styles['avatar']} alt="" />
-                <p style={{ fontWeight: 'bold' }}>{comment.profile.login}</p>
-                <div className={styles['reply-div']} onClick={() => onReply(comment)}>
-                    <img src={replyIcon} className={styles['arrow']}/>
-                    <a>Ответить</a>
+            <div className={styles['comment-header']}>
+                <RemoteImage src={comment.profile.avatar} className={styles['avatar']} alt="" />
+                <div className={styles['author-info']}>
+                    <div className={styles['author-line']}>
+                        <strong>{comment.profile.login}</strong>
+                        {comment.profile.is_verified && <img src={verifiedBadge} className={styles['verified-badge']} alt="Верифицированный профиль" />}
+                        <time>{formatCustomDate(comment.timestamp)}</time>
+                    </div>
+                    <button type="button" className={styles['reply-button']} onClick={() => onReply(comment)}>
+                        <img src={replyIcon} className={styles['arrow']} alt="" />
+                        Ответить
+                    </button>
                 </div>
-                
-                {comment.profile.is_verified && <img src={verifiedBadge} className={styles['verified-badge']} alt="" />}
-                <p>{formatCustomDate(comment.timestamp)}</p>
                 {isOwnComment && <div className={styles['comment-menu']}>
                     <button
                         type="button"
@@ -186,7 +173,7 @@ export default function Comment({ comment, releaseId, onReply, onEdit, newReply,
                 </div>}
             </div>
             
-            <div className="flex-row-flex-start">
+            <div className={styles['comment-message']}>
                 {isSpoiler ? <div className={`${styles['spoiler-message']} ${!isSpoilerRevealed ? styles['spoiler-message-covered'] : ''}`}>
                     <p className={isSpoilerRevealed ? '' : styles['spoiler-message-hidden']}>{commentMessage}</p>
                     {!isSpoilerRevealed && <button
@@ -201,11 +188,13 @@ export default function Comment({ comment, releaseId, onReply, onEdit, newReply,
             </div>
             
             <div className={styles['vote']}>
-                <img src={upArrowIcon} className={`${styles['arrow']} ${currentVote === 2 ? styles['positive'] : ''}`}
-                 onClick={() => void handleVote(2) }/>
-                <p>{voteCount}</p>
-                <img src={downArrowIcon} className={`${styles['arrow']} ${currentVote === 1 ? styles['negative'] : ''}`}
-                onClick={() => void handleVote(1) } />
+                <button type="button" aria-label="Голосовать за" onClick={() => void handleVote(2)}>
+                    <img src={upArrowIcon} className={`${styles['arrow']} ${currentVote === 2 ? styles['positive'] : ''}`} alt="" />
+                </button>
+                <span>{voteCount}</span>
+                <button type="button" aria-label="Голосовать против" onClick={() => void handleVote(1)}>
+                    <img src={downArrowIcon} className={`${styles['arrow']} ${currentVote === 1 ? styles['negative'] : ''}`} alt="" />
+                </button>
             </div>
             {replyCount !== 0 && (
                 <div 
@@ -225,9 +214,9 @@ export default function Comment({ comment, releaseId, onReply, onEdit, newReply,
                 </div>
             )}
             {isRepliesShown && replies.length > 0 && (
-                <div className={styles.reply} style={{ marginLeft: '20px' }}>
+                <div className={styles.reply}>
                     {replies.map((reply) => (
-                        <Comment
+                        <CommentComponent
                             key={reply.id}
                             comment={reply}
                             releaseId={releaseId}
@@ -262,7 +251,7 @@ export default function Comment({ comment, releaseId, onReply, onEdit, newReply,
     )
 }
 
-async function fetchCommentReplies(commentId: number, page: number, token: string): Promise<CommentType[]> {
+async function fetchCommentReplies(commentId: number, page: number, token: string): Promise<Comment[]> {
     const response = await fetch(`https://api-s.anixsekai.com/release/comment/replies/${commentId}/${page}?sort=2&token=${token}`);
     if (!response.ok) {
         throw new Error("Не удалось загрузить ответы: " + response.status);

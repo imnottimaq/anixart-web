@@ -5,7 +5,7 @@
 }
 
 .loading-overlay {
-  z-index: 99;
+  z-index: 101;
   position: fixed;
   top: 0;
   left: 0;
@@ -17,7 +17,7 @@
   pointer-events: none;
   backdrop-filter: blur(3px);
   background-color: rgb(0 0 0 / 12%);
-  animation: overlay-in 180ms ease-out both;
+  animation: overlay-in 220ms cubic-bezier(.2, .8, .2, 1) both;
 }
 
 .loading-overlay::before {
@@ -40,6 +40,32 @@
   font-weight: 700;
   letter-spacing: .04em;
   animation: loader-text 1.2s ease-in-out infinite;
+}
+
+.loading-more {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 48px;
+  color: var(--text-secondary);
+  font-size: 14px;
+}
+
+.loading-more::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid color-mix(in srgb, var(--text-color) 20%, transparent);
+  border-top-color: var(--accent-color);
+  border-radius: 50%;
+  animation: loader-spin 780ms linear infinite;
+}
+
+@keyframes overlay-in {
+  from { opacity: 0; backdrop-filter: blur(0); }
+  to { opacity: 1; backdrop-filter: blur(3px); }
 }
 
 .side-panel {
@@ -93,6 +119,10 @@
   gap: 16px;
 }
 
+.horizontal-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
 .empty-my-tab {
   display: grid;
   min-height: calc(100dvh - 120px);
@@ -111,6 +141,14 @@
   font-weight: 700;
   transition: transform 160ms ease, background-color 160ms ease;
 }
+
+.filter-error,
+.filter-empty {
+  margin: 12px 0;
+}
+
+.filter-error { color: var(--status-dropped); }
+.filter-empty { color: var(--text-secondary); }
 
 .configure-button:hover {
   background: var(--lighter-accent-color);
@@ -153,7 +191,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .loading-overlay::before,
-  .loading-overlay::after {
+  .loading-overlay::after,
+  .loading-more::before {
     animation: none;
   }
 }

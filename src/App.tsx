@@ -1,10 +1,10 @@
 import { useEffect, useState,} from 'react'
 import {  RouterProvider } from 'react-router-dom'
 import { router } from './app/router';
-import './App.css'
 import { type AppSettings, defaultAppSettings } from './shared/types/settings';
 import { UserContext } from './shared/contexts/userContext';
 import { SettingsContext } from './shared/contexts/settingsContext';
+import { SearchContext, type SearchScope } from './shared/contexts/searchContext';
 
 function App() {
   const [userToken, setUserTokenState] = useState<string>(() => localStorage.getItem('user_token') || "");
@@ -28,6 +28,7 @@ function App() {
       return defaultAppSettings;
     }
   });
+  const [searchScope, setSearchScope] = useState<SearchScope>({ type: 'releases' });
 
   useEffect(() => {
     localStorage.setItem('app_settings', JSON.stringify(settings));
@@ -82,7 +83,9 @@ function App() {
   return (
     <SettingsContext.Provider value={{settings, setSettings}}>
       <UserContext.Provider value={{userToken, setUserToken, userId, setUserId}}>
-        <RouterProvider router={router} />
+        <SearchContext.Provider value={{searchScope, setSearchScope}}>
+          <RouterProvider router={router} />
+        </SearchContext.Provider>
       </UserContext.Provider>
     </SettingsContext.Provider>
   )

@@ -6,6 +6,7 @@ import { type Anime } from '../shared/types/api';
 import { emptyTab, type TabData } from '../shared/types/internal';
 import { useUser } from '../shared/contexts/userContext';
 import { useSettings } from '../shared/contexts/settingsContext';
+import { useSearchScope, type SearchScope } from '../shared/contexts/searchContext';
 import styles from './LatestReleasesScreen.module.css';
 
 type ProfilePage = 'favorites' | 'history' | 'watching' | 'planned' | 'completed' | 'onHold' | 'dropped';
@@ -37,6 +38,16 @@ const API_SORT_VALUES: Record<ReleaseSort, number> = {
     titleDesc: 6,
 };
 
+const SEARCH_SCOPES: Record<ProfilePage, SearchScope> = {
+    favorites: { type: 'favorites' },
+    history: { type: 'history' },
+    watching: { type: 'profileList', list: 1 },
+    planned: { type: 'profileList', list: 2 },
+    completed: { type: 'profileList', list: 3 },
+    onHold: { type: 'profileList', list: 4 },
+    dropped: { type: 'profileList', list: 5 },
+};
+
 function createTabs(): Record<ProfilePage, TabData> {
     return {
         favorites: emptyTab(),
@@ -52,6 +63,7 @@ function createTabs(): Record<ProfilePage, TabData> {
 export default function FavoritesScreen() {
     const { userToken } = useUser();
     const { settings } = useSettings();
+    const { setSearchScope } = useSearchScope();
     const triggerRef = useRef<HTMLDivElement | null>(null);
     const loadingRequestsRef = useRef(new Set<string>());
     const sortVersionRef = useRef(0);
@@ -61,6 +73,13 @@ export default function FavoritesScreen() {
 
     const activeTab = tabs[activePage];
     const currentPageIsLoaded = activeTab.loadedPages.includes(activeTab.page);
+    const isInitialLoading = activeTab.isLoading && activeTab.releases.length === 0;
+    const isLoadingMore = activeTab.isLoading && activeTab.releases.length > 0;
+
+    useEffect(() => {
+        setSearchScope(SEARCH_SCOPES[activePage]);
+        return () => setSearchScope({ type: 'releases' });
+    }, [activePage, setSearchScope]);
 
     const handleSortChange = (nextSort: ReleaseSort) => {
         if (nextSort === sort) return;
@@ -165,17 +184,18 @@ export default function FavoritesScreen() {
                 <div className={styles['sort-toolbar']}>
                     <SortSelect value={sort} onChange={handleSortChange} />
                 </div>
-                <div className={styles['releases-grid']}>
+                <div className={`${styles['releases-grid']} ${settings.appearance.defaultCardType === 'horizontal' ? styles['horizontal-grid'] : ''}`}>
                     {activeTab.releases.map(anime => (
                         settings.appearance.defaultCardType === 'vertical'
                             ? <AnimeCard key={anime.id} anime={anime} />
                             : <AnimeCardHorizontal key={anime.id} anime={anime} />
                     ))}
                     <div ref={triggerRef} style={{ height: '20px', background: 'transparent' }} />
+                    {isLoadingMore && <div className={styles['loading-more']} role="status">Загружаем ещё релизы…</div>}
                 </div>
             </div>
 
-            {activeTab.isLoading && <div className={styles['loading-overlay']} />}
+            {isInitialLoading && <div className={styles['loading-overlay']} role="status" aria-label="Загрузка списка" />}
         </div>
     );
 }

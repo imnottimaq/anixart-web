@@ -1,9 +1,15 @@
 import { Link, Outlet } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { Modal } from '../modals/ModalTemplate';
+import SearchBar from '../components/SearchBar'
+import { useSettings } from '../shared/contexts/settingsContext';
+import SunIcon from '../assets/icons/sun.svg';
+import MoonIcon from '../assets/icons/moon.svg';
+import styles from './RootLayout.module.css';
 
 export default function RootLayout() {
-  const [theme, setTheme] = useState<'dark' | 'light'>('light');
+  const { settings, setSettings } = useSettings();
+  const { theme } = settings.appearance;
   const [isFirstTimeOpening, setIsFirstTimeOpeningState] = useState<boolean>(() => localStorage.getItem('onboarded') != "true")
 
   const closeOnboarding = () => {
@@ -16,27 +22,37 @@ export default function RootLayout() {
   }, [theme]);
 
   return (
-      <div>
-        <header>
-          <Link to="/" className='nav-link header-left nav-logo-block'>
+      <div className={styles.layout}>
+        <header className={styles.header}>
+          <Link to="/" className={`${styles['nav-link']} ${styles['nav-logo-block']}`}>
               <img src="https://anixart-app.com/assets/images/logo.svg?v2" alt="Anixart" />
               <p>Anixart</p>
             </Link>  
-          <nav className='header-left'>
-            <Link to="/" className='nav-link'>Главная</Link>
-            <Link to="/overview" className='nav-link'>Обзор</Link>
-            <Link to="/favorites" className='nav-link'>Избранное</Link>
-            <Link to="/account" className='nav-link'>Аккаунт</Link>
-            <Link to="/random" className='nav-link'>Случайное аниме</Link>    
+          <nav className={styles.navigation}>
+            <Link to="/" className={styles['nav-link']}>Главная</Link>
+            <Link to="/overview" className={styles['nav-link']}>Обзор</Link>
+            <Link to="/favorites" className={styles['nav-link']}>Избранное</Link>
+            <Link to="/account" className={styles['nav-link']}>Аккаунт</Link>
+            <Link to="/random" className={styles['nav-link']}>Случайное аниме</Link>
           </nav>
-          <button className='header-right' 
-            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
-            style={{ padding: '8px 16px', appearance:'none', cursor: 'pointer', backgroundColor: 'transparent', border:'0px' }}
+          <SearchBar />
+          <button
+            type="button"
+            className={styles['theme-toggle']}
+            onClick={() => setSettings(previous => ({
+              ...previous,
+              appearance: {
+                ...previous.appearance,
+                theme: previous.appearance.theme === 'dark' ? 'light' : 'dark',
+              },
+            }))}
+            aria-label={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}
+            title={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}
           >
-            {theme === 'dark' ? '☀️' : '🌙'}
+            <img src={theme === 'dark' ? SunIcon : MoonIcon} alt="" />
           </button>
         </header>
-        <main>
+        <main className={styles.main}>
           <Outlet/>
         </main>
         <Modal
@@ -61,5 +77,6 @@ export default function RootLayout() {
           ]}
         />
       </div>
+      
   );
 }

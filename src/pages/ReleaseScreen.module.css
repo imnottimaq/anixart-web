@@ -189,6 +189,51 @@
     overflow: hidden;
 }
 
+.release-details {
+    display: flex;
+    gap: 24px;
+    align-items: flex-start;
+    margin-top: 20px;
+}
+
+.release-media {
+    min-width: 0;
+    flex: 1 1 auto;
+}
+
+.release-facts {
+    display: flex;
+    flex: 0 0 42%;
+    flex-direction: column;
+    gap: 7px;
+    min-width: 280px;
+    padding: 2px 0;
+}
+
+.fact-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.fact-row p {
+    margin: 1px 0 0;
+    line-height: 1.38;
+}
+
+.fact-row .icon {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 30px;
+    object-fit: contain;
+}
+
+.fact-row .japan-flag,
+.fact-row .china-flag {
+    flex: 0 0 30px;
+    margin-top: 0;
+}
+
 .screenshot-img {
     width: 100%;
     height: auto;
@@ -539,6 +584,14 @@
 .empty-comments { color: color-mix(in srgb, var(--text-color) 65%, transparent); }
 
 @media (max-width: 540px) {
+    .release-details {
+        flex-direction: column;
+    }
+
+    .release-facts {
+        min-width: 0;
+    }
+
     .comment-controls {
         flex-wrap: wrap;
     }

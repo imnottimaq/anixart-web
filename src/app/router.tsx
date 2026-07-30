@@ -25,6 +25,7 @@ export const router = createBrowserRouter([
     { path: 'anime/:id', element: <ReleaseScreen /> },
     { path: 'anime/:id/watch', element: <PlayerScreen /> },
     { path: 'account', element: <AccountScreen /> },
+    { path: 'account/:id', element: <AccountScreen/>  },
     { path: 'account/login', element: <LoginScreen /> },
     { path: 'account/recover', element: <RecoverScreen /> },
     { path: 'account/create', element: <NewAccountScreen /> },

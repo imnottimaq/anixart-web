@@ -7,11 +7,14 @@ import 'swiper/css/navigation';
 import 'swiper/css/pagination';
 import styles from './ReleaseScreen.module.css'
 import { type Anime } from "../shared/types/api";
-import ReleatedRelease from "../components/RelatedRelease";
+import ReleaseCard from "../components/ReleaseCard";
 import { useUser } from "../shared/contexts/userContext";
 import { useSettings } from "../shared/contexts/settingsContext";
-import Comment, {type CommentType} from "../components/Comment";
+import Comment from "../components/Comment";
+import { type Comment as CommentType } from "../shared/types/api";
 import DubSelectModal from "../modals/DubSelectModal";
+import WatchlistLine from "../components/WatchlistLine";
+import RemoteImage from '../components/RemoteImage';
 
 //Icons
 import peopleIcon from "../assets/icons/users.svg"
@@ -23,7 +26,7 @@ import sendIcon from '../assets/icons/send.svg'
 
 import { setPlayerSession } from '../shared/playerSession'
 
-const AGENT_PROXY = "https://kodik-proxy.tima3050505.workers.dev/agentproxy?url="
+const AGENT_PROXY = "https://kodik-proxy.imnottimaq.workers.dev/agentproxy?url="
 
 export default function ReleaseScreen(){
     const {id} = useParams<{id: string}>();
@@ -36,7 +39,6 @@ export default function ReleaseScreen(){
     const [animeData, setAnimeData] = useState<Anime>(partialData);
     const [screenshots, setScreenshots] = useState<string[]>([]);
     const [isDubScreenOpen, setIsDubScreenOpen] = useState(false);
-    const [overallListCount, setOverallListCount] = useState(0);
     const requestKey = `${id ?? ''}:${userToken}`;
     const [loadedRequestKey, setLoadedRequestKey] = useState<string | null>(null);
     const [commentText, setCommentText] = useState('');
@@ -126,8 +128,7 @@ export default function ReleaseScreen(){
             .then(data => {
                 const release = data.release as Anime;
                 setAnimeData(release);
-                setOverallListCount(release.watching_count + release.plan_count + release.completed_count + release.hold_on_count + release.dropped_count);
-                setScreenshots(release.screenshot_images.map(item => `https://images.weserv.nl/?url=${item}`));
+                setScreenshots(release.screenshot_images);
                 console.log(data)
             })
             .catch(error => console.error('Не удалось загрузить релиз:', error))
@@ -145,7 +146,7 @@ export default function ReleaseScreen(){
     return(
         <div className={styles['body']}>
             <div className={styles['side-panel']}>
-                <img src={"https://images.weserv.nl/?url="+animeData.image} className={styles.poster}/>
+                <RemoteImage src={animeData.image} className={styles.poster}/>
                 <div className={`${styles['action-panel']}`}>
                     <select id="watchlist-select" className={`${styles['list-select']} ${styles['action-btn']} ${styles[`status-${animeData?.profile_list_status ?? 0}`]}`} onChange={e => {
                             const newStatus = +e.target.value
@@ -211,27 +212,13 @@ export default function ReleaseScreen(){
                     </div>
                 </div>
                 <div className={styles['watchlist-info']}>
-                    <div className={styles['watchlist-line']}>
-                        <progress value='100' max='100' className={styles['progress1']}></progress>
-                        <progress value={(animeData.watching_count + animeData.plan_count + animeData.completed_count + animeData.hold_on_count) / overallListCount * 100} max='100' className={styles['progress2']}></progress>
-                        <progress value={(animeData.watching_count + animeData.plan_count + animeData.completed_count) / overallListCount * 100} max='100' className={styles['progress3']}></progress>
-                        <progress value={(animeData.watching_count + animeData.plan_count) / overallListCount * 100} max='100' className={styles['progress4']}></progress>
-                        <progress value={(animeData.watching_count) / overallListCount * 100} max='100' className={styles['progress5']}></progress>
-                    </div>
-                    <div className={styles['watchlist-hint']}>
-                        {[
-                            ['watching', 'Смотрю', animeData.watching_count],
-                            ['plan', 'В планах', animeData.plan_count],
-                            ['completed', 'Просмотрено', animeData.completed_count],
-                            ['hold', 'Отложено', animeData.hold_on_count],
-                            ['dropped', 'Брошено', animeData.dropped_count],
-                        ].map(([status, label, count]) => (
-                            <div className={styles['watchlist-hint-item']} key={status}>
-                                <span className={`${styles['watchlist-hint-circle']} ${styles[`circle-${status}`]}`}></span>
-                                <span>{label} {count ?? 0}</span>
-                            </div>
-                        ))}
-                    </div>
+                    <WatchlistLine
+                        watching_count={animeData.watching_count}
+                        plan_count={animeData.plan_count}
+                        completed_count={animeData.completed_count}
+                        hold_on_count={animeData.hold_on_count}
+                        dropped_count={animeData.dropped_count}
+                    />
                 </div>
                 
             </div>
@@ -256,8 +243,8 @@ export default function ReleaseScreen(){
                             </div>}
                         <p>{animeData.description}</p>
                     </div>
-                    <div style={{display:"flex", flexDirection:"row", marginTop: "20px"}}>
-                        <div style={{minWidth: 0}}>
+                    <div className={styles['release-details']}>
+                        <div className={styles['release-media']}>
                             {screenshots.length > 0 && (
                                 <div className={styles['swiper-container']}>
                                     <Swiper
@@ -278,8 +265,8 @@ export default function ReleaseScreen(){
                                     >
                                         {screenshots.map((url, index) => (
                                             <SwiperSlide key={index}>
-                                                <img 
-                                                    src={url} 
+                                                <RemoteImage
+                                                    src={url}
                                                     alt={`Скриншот ${index + 1}`} 
                                                     className={styles['screenshot-img']}
                                                 />
@@ -291,35 +278,35 @@ export default function ReleaseScreen(){
                             <div>
                                 {animeData.related_releases.length !== 0 && <h3 style={{marginTop: '0px'}}>Связанные релизы</h3>}
                                 {animeData.related_releases && animeData.related_releases.map((anime:Anime) =>(
-                                        <ReleatedRelease key={anime.id} anime={anime}/>
+                                        <ReleaseCard key={anime.id} variant="related" anime={anime}/>
                                     ))}
                             </div>
                         </div>
-                            <div style={{margin: "0px 15px", minWidth:"30%"}}>
-                                <div className="flex-row-center">{({
+                            <aside className={styles['release-facts']}>
+                                <div className={styles['fact-row']}>{({
                                     "Япония": <div className={styles["japan-flag"]}></div>,
                                     "Китай": <div className={styles["china-flag"]}></div>
                                 } as Record<string, React.ReactNode>)[animeData.country]
                                 }
                                 <p>{animeData.country}, {(["зима","весна","лето","осень"])[animeData.season]} {animeData.year} г.</p>
                                 </div>
-                                <div className="flex-row-center">
+                                <div className={styles['fact-row']}>
                                     <img src={albumIcon} className={styles['icon']} />
                                     <p>{animeData.episodes_released} из {animeData.episodes_total || "?"} эп.{animeData.duration ? `, по ~${animeData.duration} мин.` : ""}</p>
                                 </div>
-                                <div className="flex-row-center">
+                                <div className={styles['fact-row']}>
                                     <img src={calendarIcon} className={styles['icon']} />
                                     <p>{animeData.category.name}, {animeData.status.name.toLocaleLowerCase()}</p>
                                 </div>
-                                <div className="flex-row-center"> 
+                                <div className={styles['fact-row']}> 
                                     <img src={peopleIcon} className={styles['icon']} />
                                     <p>Студия {animeData.studio}{animeData.author ? `, автор ${animeData.author}`:""}{animeData.director ? `, режиссёр ${animeData.director}`:""}</p>
                                 </div>
-                                <div className="flex-row-center">
+                                <div className={styles['fact-row']}>
                                     <img src={tagsIcon} className={styles['icon']} />
                                     <p>{animeData.genres}</p>
                                 </div>
-                            </div>
+                            </aside>
                     </div>
                     <section className={styles['comments-section']}>
                         <div className={styles['comments-heading']}>

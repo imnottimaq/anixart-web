@@ -43,8 +43,15 @@ button.seen{
 .top-row-right select{
     border: 1px solid var(--lighter-background-color);
     height: 30px;
-    background-color: transparent;
+    padding: 0 8px;
+    color: var(--text-color);
+    background-color: var(--background-color);
     border-radius: 0.3rem;
+}
+
+.top-row-right select option {
+    color: var(--text-color);
+    background-color: var(--background-color);
 }
 
 .top-row{
@@ -57,6 +64,12 @@ button.seen{
 
 .top-row h3{
     margin: 5px 0;
+    color: var(--text-color);
+}
+
+.episodes h2,
+.episodes h3 {
+    color: var(--text-color);
 }
 
 .top-row-right{
@@ -72,4 +85,7 @@ button.seen{
     cursor: pointer;
 }
 
-
+[data-theme="dark"] .top-row-right img,
+[data-theme="dark"] .episode img {
+    filter: invert(1);
+}
