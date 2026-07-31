@@ -3,6 +3,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { useUser } from "../shared/contexts/userContext";
 import styles from './LoginScreen.module.css'
 import { useTranslation } from '../shared/useTranslation';
+import { resolveAndStoreProfileIdentity } from '../shared/profileIdentity';
+import { saveRoomIdentity } from '../shared/roomParticipant';
 
 export default function LoginScreen(){
     const [username, setUsername] = useState<string>("")
@@ -46,8 +48,18 @@ async function handleLogin(username: string, password: string, setUserToken: (to
     })
     if (response.ok) {
         const data = await response.json()
+        if (data.code !== 0 || !data.profileToken?.token) throw new Error('Неверный логин или пароль');
         setUserToken(data.profileToken.token)
-        setUserId(data.profileToken.id)
+
+        // `profileToken.id` is an ID of the token record, not the public
+        // profile ID used by profile endpoints and watch rooms.
+        if (data.profile?.id && data.profile.login) {
+            saveRoomIdentity({ id: data.profile.id, login: data.profile.login, avatar: data.profile.avatar ?? null });
+            setUserId(data.profile.id);
+        } else {
+            const profileId = await resolveAndStoreProfileIdentity(username);
+            setUserId(profileId ?? 0);
+        }
         alert(`Logged in:`)
         return
     }

@@ -66,6 +66,7 @@ function ConnectedRoom({ roomId }: { roomId: string }) {
     const [releaseResults, setReleaseResults] = useState<Anime[]>([]);
     const [isSearching, setIsSearching] = useState(false);
     const [participantProfiles, setParticipantProfiles] = useState<Record<number, ParticipantProfile>>({});
+    const [unavailableProfiles, setUnavailableProfiles] = useState<number[]>([]);
     const isController = useMemo(() => Boolean(room?.participants.find(item => item.profileId === userId)?.canControl), [room, userId]);
 
     useEffect(() => { setActiveRoomId(roomId); }, [roomId, setActiveRoomId]);
@@ -87,20 +88,22 @@ function ConnectedRoom({ roomId }: { roomId: string }) {
         let cancelled = false;
         const missingIds = room.participants
             .map(participant => participant.profileId)
-            .filter(profileId => !participantProfiles[profileId]);
+            .filter(profileId => !participantProfiles[profileId] && !unavailableProfiles.includes(profileId));
         if (!missingIds.length) return;
 
         void Promise.all(missingIds.map(async profileId => {
             const data = await getWatchRoomProfile(profileId);
-            return data.profile?.login ? [profileId, { login: data.profile.login, avatar: data.profile.avatar ?? null }] as const : null;
+            return data?.profile?.login ? [profileId, { login: data.profile.login, avatar: data.profile.avatar ?? null }] as const : profileId;
         })).then(results => {
             if (cancelled) return;
-            const loaded = Object.fromEntries(results.filter((item): item is readonly [number, ParticipantProfile] => item !== null));
+            const unavailable = results.filter((item): item is number => typeof item === 'number');
+            const loaded = Object.fromEntries(results.filter((item): item is readonly [number, ParticipantProfile] => Array.isArray(item)));
             if (Object.keys(loaded).length) setParticipantProfiles(previous => ({ ...previous, ...loaded }));
+            if (unavailable.length) setUnavailableProfiles(previous => [...new Set([...previous, ...unavailable])]);
         }).catch(error => console.error('Не удалось загрузить профили участников:', error));
 
         return () => { cancelled = true; };
-    }, [participantProfiles, room?.participants]);
+    }, [participantProfiles, room?.participants, unavailableProfiles]);
 
     useEffect(() => {
         const query = releaseQuery.trim();

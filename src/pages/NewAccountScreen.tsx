@@ -3,6 +3,7 @@ import { useUser } from "../shared/contexts/userContext";
 import styles from './LoginScreen.module.css'
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from '../shared/useTranslation';
+import { resolveAndStoreProfileIdentity } from '../shared/profileIdentity';
 
 export default function NewAccountScreen() {
     const [username, setUsername] = useState("")
@@ -162,7 +163,8 @@ async function handleCreateSecondStage(
         if (data.code !== 0) throw new Error(data.message || "Неверный код или не удалось создать аккаунт");
         if (data.profileToken && data.profileToken.token) {
             setUserToken(data.profileToken.token);
-            setUserId(data.profileToken.id);
+            const profileId = await resolveAndStoreProfileIdentity(username);
+            setUserId(profileId ?? data.profileToken.id);
             alert("Аккаунт успешно создан! Вы вошли в аккаунт.");
         }
     } catch (err: any) {

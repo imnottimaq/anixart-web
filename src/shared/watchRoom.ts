@@ -65,7 +65,7 @@ export async function getPublicWatchRooms() {
 
 export async function getWatchRoomProfile(profileId: number) {
     const response = await fetch(`${ROOM_SERVER_URL}/profiles/${profileId}`);
-    if (!response.ok) throw new Error(`Не удалось загрузить профиль: ${response.status}`);
+    if (!response.ok) return null;
     return response.json() as Promise<{ profile?: { login?: string; avatar?: string | null } }>;
 }
 
