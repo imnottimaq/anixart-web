@@ -74,10 +74,13 @@ function ConnectedRoom({ roomId }: { roomId: string }) {
 
     useEffect(() => {
         if (userId <= 0) { setMessage('Войдите в аккаунт, чтобы подключиться к комнате'); return; }
-        socketRef.current.connect(roomId, getRoomParticipant(userId), state => { setRoom(state); setMessage(''); }, setMessage);
+        socketRef.current.connect(roomId, getRoomParticipant(userId), state => { setRoom(state); setMessage(''); }, setMessage, () => {
+            setActiveRoomId(null);
+            navigate('/watch', { replace: true });
+        });
         const interval = window.setInterval(() => socketRef.current.send({ type: 'sync_request' }), 15_000);
         return () => { window.clearInterval(interval); socketRef.current.disconnect(); };
-    }, [roomId, userId]);
+    }, [navigate, roomId, setActiveRoomId, userId]);
 
     useEffect(() => {
         if (!room?.media) return;

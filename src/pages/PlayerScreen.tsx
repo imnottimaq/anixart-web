@@ -207,10 +207,13 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
             if (state.playback.paused && !video.paused) video.pause();
             if (!state.playback.paused && video.paused) void video.play().catch(error => console.error('Не удалось синхронизировать плеер:', error));
             window.setTimeout(() => { applyingRoomStateRef.current = false; }, 120);
-        }, error => console.error('Ошибка комнаты:', error));
+        }, error => console.error('Ошибка комнаты:', error), () => {
+            setActiveRoomId(null);
+            navigate('/watch', { replace: true });
+        });
         const interval = window.setInterval(() => roomSocketRef.current.send({ type: 'sync_request' }), 15_000);
         return () => { window.clearInterval(interval); roomSocketRef.current.disconnect(); };
-    }, [animeId, episodeNumber, navigate, roomId, userId]);
+    }, [animeId, episodeNumber, navigate, roomId, setActiveRoomId, userId]);
 
     useEffect(() => {
         if (!roomId || !watchRoom || watchRoom.media || watchRoom.hostId !== userId || !playerSession.dubId || !playerSession.sourceId || episodeNumber === undefined) return;

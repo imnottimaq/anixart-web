@@ -86,7 +86,7 @@ function App() {
       // The room may have been deleted after the browser tab was closed.
       // Do not keep a stale room badge or retry its dead WebSocket forever.
       setActiveRoomId(null);
-    });
+    }, () => setActiveRoomId(null));
     return () => roomSocketRef.current.disconnect();
   }, [activeRoomId, setActiveRoomId, userId]);
 

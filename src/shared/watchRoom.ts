@@ -72,7 +72,13 @@ export async function getWatchRoomProfile(profileId: number) {
 export class WatchRoomSocket {
     private socket: WebSocket | null = null;
 
-    connect(roomId: string, participant: Omit<RoomParticipant, 'canControl'>, onState: (state: WatchRoomState) => void, onError: (message: string) => void) {
+    connect(
+        roomId: string,
+        participant: Omit<RoomParticipant, 'canControl'>,
+        onState: (state: WatchRoomState) => void,
+        onError: (message: string) => void,
+        onKicked?: () => void,
+    ) {
         this.disconnect();
         const socket = new WebSocket(getRoomWebSocketUrl(roomId));
         this.socket = socket;
@@ -82,6 +88,7 @@ export class WatchRoomSocket {
                 const message = JSON.parse(String(event.data)) as { type: string; state?: WatchRoomState; message?: string };
                 if (message.type === 'room_state' && message.state) onState(message.state);
                 if (message.type === 'error' && message.message) onError(message.message);
+                if (message.type === 'kicked') onKicked?.();
             } catch {
                 onError('Сервер отправил некорректное сообщение');
             }
