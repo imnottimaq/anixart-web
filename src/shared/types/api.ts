@@ -12,6 +12,7 @@ export interface Anime {
   country: string;
   season: number;
   year: string;
+  aired_on_date: number;
   genres: string;
   studio: string;
   author: string;
@@ -24,6 +25,7 @@ export interface Anime {
   };
   age_rating: number;
   related_releases: Anime[];
+  recommended_releases: Anime[];
   profile_list_status: number;
   vote_1_count: number;
   vote_2_count: number;

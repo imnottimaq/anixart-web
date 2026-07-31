@@ -2,11 +2,13 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useUser } from '../shared/contexts/userContext';
 import { type Anime } from '../shared/types/api';
+import { useTranslation } from '../shared/useTranslation';
 
 export default function RandomAnime() {
     const navigate = useNavigate();
     const { userToken } = useUser();
     const [error, setError] = useState<string | null>(null);
+    const { t } = useTranslation();
 
     useEffect(() => {
         const controller = new AbortController();
@@ -27,10 +29,10 @@ export default function RandomAnime() {
             .catch((requestError: unknown) => {
                 if (!isCurrentRequest) return;
                 if (hasTimedOut) {
-                    setError('Сервер слишком долго отвечает.');
+                    setError(t('random.timeout'));
                     return;
                 }
-                setError(requestError instanceof Error ? requestError.message : 'Не удалось получить случайное аниме.');
+                setError(requestError instanceof Error ? requestError.message : t('random.loadError'));
             })
             .finally(() => window.clearTimeout(timeoutId));
 
@@ -39,11 +41,11 @@ export default function RandomAnime() {
             controller.abort();
             window.clearTimeout(timeoutId);
         };
-    }, [navigate, userToken]);
+    }, [navigate, t, userToken]);
 
     return (
         <div style={{ display: 'grid', minHeight: '50vh', placeItems: 'center', textAlign: 'center' }}>
-            {error ? <p>{error}</p> : <p>Ищем случайное аниме…</p>}
+            {error ? <p>{error}</p> : <p>{t('random.searching')}</p>}
         </div>
     );
 }

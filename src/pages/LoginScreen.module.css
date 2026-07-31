@@ -15,6 +15,12 @@
     gap: 10px;
 }
 
+.form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
 .form-container input {
     appearance: none;
     border: 1px solid var(--border-color, #ccc);
@@ -52,4 +58,46 @@
     height: 36px;
     cursor: pointer;
     align-self: center;
+}
+
+.code-row {
+    display: flex;
+    gap: 8px;
+}
+
+.code-row input {
+    min-width: 0;
+    flex: 1;
+}
+
+.form-container .send-code-button {
+    height: 40px;
+    flex: 0 0 auto;
+    padding: 0 12px;
+    border-radius: .5rem;
+    font-size: 13px;
+    white-space: nowrap;
+}
+
+.form-container .submit-button {
+    width: 100%;
+    height: 40px;
+    margin-top: 4px;
+}
+
+.form-container button:disabled {
+    cursor: not-allowed;
+    opacity: .48;
+}
+
+.code-hint {
+    margin: -2px 0 0;
+    color: var(--text-secondary, #666);
+    font-size: 13px;
+}
+
+.error {
+    margin: 0;
+    color: var(--status-dropped, #d33);
+    font-size: 14px;
 }

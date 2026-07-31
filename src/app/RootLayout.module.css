@@ -76,6 +76,12 @@
   transition: transform .2s ease;
 }
 
+.settings-link {
+  flex: 0 0 38px;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
 
 [data-theme="dark"] .theme-toggle img {
   filter: invert(1);

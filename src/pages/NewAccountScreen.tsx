@@ -2,6 +2,7 @@ import { useState } from "react"
 import { useUser } from "../shared/contexts/userContext";
 import styles from './LoginScreen.module.css'
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from '../shared/useTranslation';
 
 export default function NewAccountScreen() {
     const [username, setUsername] = useState("")
@@ -11,29 +12,27 @@ export default function NewAccountScreen() {
 
     const navigate = useNavigate()
     
-    const [isFirstStageCompleted, setIsFirstStageCompleted] = useState(false)
     const {userToken, setUserToken, setUserId } = useUser()
     const [hash, setHash] = useState("")
     const [code, setCode] = useState("")
     const [errorMsg, setErrorMsg] = useState("")
+    const { t } = useTranslation();
 
-    const isButtonDisabled = !username || !email || !password || password !== confirmPassword;
+    const isCodeRequestDisabled = !username || !email || !password || password !== confirmPassword;
 
     if (userToken !== "") navigate('/account')
 
     return (
         <div className={styles['body']}>
-            <h2>Создание аккаунта</h2>
+            <h2>{t('auth.registerTitle')}</h2>
             <div className={styles['form-container']}>
                 
-                {errorMsg && <p style={{ color: 'red' }}>{errorMsg}</p>}
-
-                {!isFirstStageCompleted ? (
-                    <div>
+                {errorMsg && <p className={styles.error}>{errorMsg}</p>}
+                <div className={styles['form-fields']}>
                         <input 
                             type="text"
                             name="username"
-                            placeholder="Юзернейм"
+                            placeholder={t('auth.username')}
                             value={username}
                             onChange={e => setUsername(e.target.value)}
                         />
@@ -41,7 +40,7 @@ export default function NewAccountScreen() {
                         <input 
                             type="text"
                             name="email"
-                            placeholder="Email"
+                            placeholder={t('auth.email')}
                             value={email}
                             onChange={e => setEmail(e.target.value)}
                         />
@@ -49,7 +48,7 @@ export default function NewAccountScreen() {
                         <input 
                             type="password"
                             name="password" 
-                            placeholder="Пароль"
+                            placeholder={t('auth.password')}
                             value={password}
                             onChange={e => setPassword(e.target.value)}
                         />
@@ -57,36 +56,37 @@ export default function NewAccountScreen() {
                         <input 
                             type="password"
                             name="confirmPassword" 
-                            placeholder="Подтвердите пароль"
+                            placeholder={t('auth.confirmPassword')}
                             value={confirmPassword}
                             onChange={e => setConfirmPassword(e.target.value)}
                         />
 
-                        <button 
+                        <div className={styles['code-row']}>
+                            <input
+                                type="text"
+                                inputMode="numeric"
+                                placeholder={t('auth.emailCode')}
+                                value={code}
+                                onChange={e => setCode(e.target.value)}
+                            />
+                            <button
+                                type="button"
+                                className={styles['send-code-button']}
                             onClick={() => handleCreateFirstStage(
                                 username, 
                                 email,
                                 password,
                                 setHash, 
-                                setIsFirstStageCompleted, 
                                 setErrorMsg
                             )} 
-                            disabled={isButtonDisabled}
+                            disabled={isCodeRequestDisabled}
                         >
-                            Продолжить
+                            {hash ? t('misc.reset') : t('auth.sendCode')}
                         </button>
-                    </div>
-                ) : (
-                    <div>
-                        <p>Проверьте почту, которую вы указали, там лежит код.</p>
-                        <p>Введите его сюда:</p>
-                        <input 
-                            type="text" 
-                            placeholder="Код из письма"
-                            value={code}
-                            onChange={e => setCode(e.target.value)}
-                        />
-                        <button 
+                        </div>
+                        {hash && <p className={styles['code-hint']}>{t('auth.checkEmail')}</p>}
+                        <button
+                            className={styles['submit-button']}
                             onClick={() => handleCreateSecondStage(
                                 username,
                                 email,
@@ -97,11 +97,11 @@ export default function NewAccountScreen() {
                                 setUserId,
                                 setErrorMsg
                             )}
+                            disabled={!hash || !code}
                         >
-                            Отправить
+                            {t('auth.register')}
                         </button>
-                    </div>
-                )}
+                </div>
             </div>
         </div>
     )
@@ -112,7 +112,6 @@ async function handleCreateFirstStage(
     email: string,
     password: string, 
     setHash: (hash: string) => void,
-    setIsFirstStageCompleted: (state: boolean) => void,
     setErrorMsg: (msg: string) => void
 ) {
     setErrorMsg("");
@@ -124,7 +123,6 @@ async function handleCreateFirstStage(
         });
         
         const rawText = await response.text();
-        console.log("Response:", rawText);
 
         if (!rawText) {
             setErrorMsg("Сервер прислал пустой ответ");
@@ -135,7 +133,6 @@ async function handleCreateFirstStage(
         if (data.code !== 0) throw new Error(data.message || "Ошибка создания аккаунта");
 
         setHash(data.hash);
-        setIsFirstStageCompleted(true);
     } catch (err: any) {
         console.error(err);
         setErrorMsg(err.message || "Не удалось отправить код");

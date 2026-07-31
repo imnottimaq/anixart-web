@@ -1,15 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import styles from './SortSelect.module.css';
+import { useTranslation } from '../shared/useTranslation';
 
 export type ReleaseSort = 'addedDesc' | 'addedAsc' | 'titleAsc' | 'titleDesc' | 'yearDesc' | 'yearAsc';
 
-const OPTIONS: { value: ReleaseSort; label: string }[] = [
-    { value: 'addedDesc', label: 'По дате добавления: сначала новые' },
-    { value: 'addedAsc', label: 'По дате добавления: сначала старые' },
-    { value: 'titleAsc', label: 'По алфавиту: А → Z' },
-    { value: 'titleDesc', label: 'По алфавиту: Z → А' },
-    { value: 'yearDesc', label: 'По году выхода релиза: сначала новые' },
-    { value: 'yearAsc', label: 'По году выхода релиза: сначала старые' },
+const OPTIONS: { value: ReleaseSort; label: 'sort.dateAddedNewFirst' | 'sort.dateAddedOldFirst' | 'sort.fromAtoZ' | 'sort.fromZtoA' | 'sort.releaseDateNewFirst' | 'sort.releaseDateOldFirst' }[] = [
+    { value: 'addedDesc', label: 'sort.dateAddedNewFirst' }, { value: 'addedAsc', label: 'sort.dateAddedOldFirst' }, { value: 'titleAsc', label: 'sort.fromAtoZ' }, { value: 'titleDesc', label: 'sort.fromZtoA' }, { value: 'yearDesc', label: 'sort.releaseDateNewFirst' }, { value: 'yearAsc', label: 'sort.releaseDateOldFirst' },
 ];
 
 type SortSelectProps = {
@@ -18,6 +14,7 @@ type SortSelectProps = {
 };
 
 export default function SortSelect({ value, onChange }: SortSelectProps) {
+    const { t } = useTranslation();
     const [isOpen, setIsOpen] = useState(false);
     const selectRef = useRef<HTMLDivElement>(null);
     const selectedOption = OPTIONS.find(option => option.value === value) ?? OPTIONS[0];
@@ -40,12 +37,12 @@ export default function SortSelect({ value, onChange }: SortSelectProps) {
                 aria-haspopup="listbox"
                 onClick={() => setIsOpen(previous => !previous)}
             >
-                <span>{selectedOption.label}</span>
+                <span>{t(selectedOption.label)}</span>
                 <span className={`${styles.chevron} ${isOpen ? styles['chevron-open'] : ''}`} aria-hidden="true" />
             </button>
 
             {isOpen && (
-                <div className={styles.options} role="listbox" aria-label="Сортировка">
+                <div className={styles.options} role="listbox" aria-label={t('filter.sort')}>
                     {OPTIONS.map(option => (
                         <button
                             key={option.value}
@@ -58,7 +55,7 @@ export default function SortSelect({ value, onChange }: SortSelectProps) {
                                 setIsOpen(false);
                             }}
                         >
-                            {option.label}
+                            {t(option.label)}
                         </button>
                     ))}
                 </div>

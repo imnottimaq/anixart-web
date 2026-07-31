@@ -6,6 +6,7 @@ import { useSettings } from '../shared/contexts/settingsContext';
 import { useTranslation } from '../shared/useTranslation';
 import SunIcon from '../assets/icons/sun.svg';
 import MoonIcon from '../assets/icons/moon.svg';
+import SettingsIcon from '../assets/icons/gear.svg';
 import styles from './RootLayout.module.css';
 
 export default function RootLayout() {
@@ -38,6 +39,14 @@ export default function RootLayout() {
             <Link to="/random" className={styles['nav-link']}>{t('nav.random')}</Link>
           </nav>
           <SearchBar />
+          <Link
+            to="/settings"
+            className={`${styles['theme-toggle']} ${styles['settings-link']}`}
+            aria-label={t('nav.settings')}
+            title={t('nav.settings')}
+          >
+            <img src={SettingsIcon} alt="" />
+          </Link>
           <button
             type="button"
             className={styles['theme-toggle']}

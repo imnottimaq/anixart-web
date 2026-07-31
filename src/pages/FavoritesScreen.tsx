@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import AnimeCard from '../components/AnimeCard';
 import AnimeCardHorizontal from '../components/AnimeCardHorizontal';
 import SortSelect, { type ReleaseSort } from '../components/SortSelect';
@@ -57,6 +58,7 @@ function createTabs(): Record<ProfilePage, TabData> {
 
 export default function FavoritesScreen() {
     const { userToken } = useUser();
+    const navigate = useNavigate();
     const { settings } = useSettings();
     const { t } = useTranslation();
     const { setSearchScope } = useSearchScope();
@@ -86,6 +88,7 @@ export default function FavoritesScreen() {
     };
 
     useEffect(() => {
+        if (!userToken) return;
         if (!activeTab.hasMore || currentPageIsLoaded) return;
 
         const requestedPage = activeTab.page;
@@ -192,6 +195,13 @@ export default function FavoritesScreen() {
             </div>
 
             {isInitialLoading && <div className={styles['loading-overlay']} role="status" aria-label={t('misc.loading')} />}
+            {!userToken && <div className={styles['auth-overlay']} role="dialog" aria-modal="true" aria-label={t('auth.login')}>
+                <div className={styles['auth-card']}>
+                    <h2>{t('auth.loginTitle')}</h2>
+                    <p>{t('release.loginToChangeStatus')}</p>
+                    <button type="button" onClick={() => navigate('/account/login')}>{t('auth.login')}</button>
+                </div>
+            </div>}
         </div>
     );
 }

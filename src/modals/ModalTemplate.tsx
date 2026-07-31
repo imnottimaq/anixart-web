@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import XMarkIcon from '../assets/icons/xmark.svg'
 import styles from './ModalTemplate.module.css'
+import { useTranslation } from '../shared/useTranslation';
 
 type ModalAction = {
     label: string;
@@ -24,6 +25,7 @@ type ModalProps = {
 };
 
 export function Modal({ isOpen, onClose, title, text, actions, children, size, showCloseButton, contentClassName, contentStyle }: ModalProps) {
+    const { t } = useTranslation();
     const [isClosing, setIsClosing] = useState(false);
 
     const handleClose = () => {
@@ -56,8 +58,8 @@ export function Modal({ isOpen, onClose, title, text, actions, children, size, s
             aria-label={title ? 'modal-title' : undefined}
             onMouseDown={(event) => event.stopPropagation()}
         >
-            {showCloseButton !== false && <button className={styles['close-button']} onClick={handleClose} aria-label="Закрыть">
-                <img alt="Закрыть" src={XMarkIcon}/>
+            {showCloseButton !== false && <button className={styles['close-button']} onClick={handleClose} aria-label={t('misc.close')}>
+                <img alt={t('misc.close')} src={XMarkIcon}/>
             </button>}
 
             {title && <h2 className={styles.title}>{title}</h2>}

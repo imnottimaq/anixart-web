@@ -9,6 +9,7 @@ import { useUser } from '../shared/contexts/userContext'
 import { Modal } from '../modals/ModalTemplate'
 import { type Comment } from '../shared/types/api'
 import RemoteImage from './RemoteImage'
+import { useTranslation } from '../shared/useTranslation';
 
 const AGENT_PROXY = "https://kodik-proxy.tima3050505.workers.dev/agentproxy?url="
 
@@ -28,6 +29,7 @@ interface CommentRepliesResponse {
 }
 
 export default function CommentComponent({ comment, releaseId, onReply, onEdit, newReply, editedComment }: CommentProps) {
+    const { t } = useTranslation();
     const [isRepliesShown, setIsRepliesShown] = useState(false);
     const userToken = useUser()
     const [replies, setReplies] = useState<Comment[]>([]);
@@ -144,12 +146,12 @@ export default function CommentComponent({ comment, releaseId, onReply, onEdit, 
                 <div className={styles['author-info']}>
                     <div className={styles['author-line']}>
                         <strong>{comment.profile.login}</strong>
-                        {comment.profile.is_verified && <img src={verifiedBadge} className={styles['verified-badge']} alt="Верифицированный профиль" />}
+                        {comment.profile.is_verified && <img src={verifiedBadge} className={styles['verified-badge']} alt="" />}
                         <time>{formatCustomDate(comment.timestamp)}</time>
                     </div>
                     <button type="button" className={styles['reply-button']} onClick={() => onReply(comment)}>
                         <img src={replyIcon} className={styles['arrow']} alt="" />
-                        Ответить
+                        {t('comments.reply')}
                     </button>
                 </div>
                 {isOwnComment && <div className={styles['comment-menu']}>
@@ -157,18 +159,18 @@ export default function CommentComponent({ comment, releaseId, onReply, onEdit, 
                         type="button"
                         className={styles['comment-menu-button']}
                         onClick={() => setIsCommentMenuOpen((isOpen) => !isOpen)}
-                        aria-label="Действия с комментарием"
+                        aria-label={t('comments.actions')}
                         aria-expanded={isCommentMenuOpen}
                     >•••</button>
                     {isCommentMenuOpen && <div className={styles['comment-menu-options']}>
                         <button type="button" disabled={isCommentActionLoading} onClick={() => {
                             setIsCommentMenuOpen(false);
                             onEdit(comment);
-                        }}>Редактировать</button>
+                        }}>{t('comments.edit')}</button>
                         <button type="button" disabled={isCommentActionLoading} className={styles['delete-comment-option']} onClick={() => {
                             setIsCommentMenuOpen(false);
                             setIsDeleteConfirmationOpen(true);
-                        }}>Удалить</button>
+                        }}>{t('comments.delete')}</button>
                     </div>}
                 </div>}
             </div>
@@ -181,18 +183,18 @@ export default function CommentComponent({ comment, releaseId, onReply, onEdit, 
                         className={styles['spoiler-reveal']}
                         onClick={() => setIsSpoilerRevealed(true)}
                     >
-                        <span className={styles['spoiler-reveal-title']}>Спойлер</span>
-                        <span className={styles['spoiler-reveal-hint']}>Нажмите, чтобы показать</span>
+                        <span className={styles['spoiler-reveal-title']}>{t('comments.spoiler')}</span>
+                        <span className={styles['spoiler-reveal-hint']}>{t('comments.spoilerHint')}</span>
                     </button>}
                 </div> : <p>{commentMessage}</p>}
             </div>
             
             <div className={styles['vote']}>
-                <button type="button" aria-label="Голосовать за" onClick={() => void handleVote(2)}>
+                <button type="button" aria-label={t('comments.voteUp')} onClick={() => void handleVote(2)}>
                     <img src={upArrowIcon} className={`${styles['arrow']} ${currentVote === 2 ? styles['positive'] : ''}`} alt="" />
                 </button>
                 <span>{voteCount}</span>
-                <button type="button" aria-label="Голосовать против" onClick={() => void handleVote(1)}>
+                <button type="button" aria-label={t('comments.voteDown')} onClick={() => void handleVote(1)}>
                     <img src={downArrowIcon} className={`${styles['arrow']} ${currentVote === 1 ? styles['negative'] : ''}`} alt="" />
                 </button>
             </div>
@@ -204,9 +206,9 @@ export default function CommentComponent({ comment, releaseId, onReply, onEdit, 
                 >
                     <img src={arrowDownIcon} className={styles['arrow']} alt="" />
                     <p>
-                        {isLoading ? "Загрузка..." : (
+                        {isLoading ? t('misc.loading') : (
                             <>
-                                {isRepliesShown ? "Скрыть " : "Показать "}
+                                {isRepliesShown ? `${t('comments.hideReplies')} ` : `${t('comments.showReplies')} `}
                                 {replyCount} {getPluralReplies(replyCount)}
                             </>
                         )}
@@ -232,16 +234,16 @@ export default function CommentComponent({ comment, releaseId, onReply, onEdit, 
         <Modal
             isOpen={isDeleteConfirmationOpen}
             onClose={() => setIsDeleteConfirmationOpen(false)}
-            title="Удалить комментарий?"
-            text="Это действие нельзя отменить."
+            title={t('comments.deleteConfirmTitle')}
+            text={t('comments.deleteConfirmText')}
             actions={[
                 {
-                    label: 'Отмена',
+                    label: t('misc.cancel'),
                     variant: 'secondary',
                     onClick: () => setIsDeleteConfirmationOpen(false),
                 },
                 {
-                    label: 'Удалить',
+                    label: t('comments.delete'),
                     variant: 'danger',
                     onClick: () => void handleDeleteComment(),
                 },

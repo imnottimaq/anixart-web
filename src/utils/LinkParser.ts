@@ -584,7 +584,6 @@ export async function extractVideoLinks(url: string): Promise<VideoSources | nul
     }
 
     try {
-        console.log(url)
         const links = await parser.parse(url);
         return links ? normalizeVideoSources(links as RawVideoSources) : null;
     } catch (err) {

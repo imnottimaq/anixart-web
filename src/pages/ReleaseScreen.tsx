@@ -15,6 +15,7 @@ import { type Comment as CommentType } from "../shared/types/api";
 import DubSelectModal from "../modals/DubSelectModal";
 import WatchlistLine from "../components/WatchlistLine";
 import RemoteImage from '../components/RemoteImage';
+import { useTranslation } from '../shared/useTranslation';
 
 //Icons
 import peopleIcon from "../assets/icons/users.svg"
@@ -25,6 +26,7 @@ import favoriteIcon from '../assets/icons/bookmark.svg'
 import sendIcon from '../assets/icons/send.svg'
 
 import { setPlayerSession } from '../shared/playerSession'
+import RecommendedRelease from "../components/RecommendedRelease";
 
 const AGENT_PROXY = "https://kodik-proxy.imnottimaq.workers.dev/agentproxy?url="
 
@@ -32,6 +34,7 @@ export default function ReleaseScreen(){
     const {id} = useParams<{id: string}>();
     const {userToken, setUserId} = useUser();
     const {settings} = useSettings();
+    const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
     const partialData = location.state?.partialAnime || null;
@@ -76,12 +79,12 @@ export default function ReleaseScreen(){
     const sendComment = async () => {
         const message = commentText.trim();
         if (message.length < 5 || isSendingComment) {
-            setCommentError('Комментарий должен содержать минимум 5 символов.');
+            setCommentError(t('comments.minLength'));
             return;
         }
 
         if (!userToken) {
-            setCommentError('Войдите в аккаунт, чтобы отправить комментарий.');
+            setCommentError(t('release.loginToChangeStatus'));
             return;
         }
 
@@ -119,7 +122,7 @@ export default function ReleaseScreen(){
             setReplyTarget(null);
             setEditTarget(null);
         } catch (error) {
-            setCommentError(error instanceof Error ? error.message : 'Не удалось отправить комментарий.');
+            setCommentError(error instanceof Error ? error.message : t('release.loadError'));
         } finally {
             setIsSendingComment(false);
         }
@@ -131,19 +134,21 @@ export default function ReleaseScreen(){
                 const release = data.release as Anime;
                 setAnimeData(release);
                 setScreenshots(release.screenshot_images);
-                console.log(data)
             })
             .catch(error => console.error('Не удалось загрузить релиз:', error))
             .finally(() => setLoadedRequestKey(requestKey));
     }, [id, requestKey, userToken]);
 
     if (isReleaseLoading) {
-        return <div className={styles['loading-overlay']} aria-label="Загрузка" />;
+        return <div className={styles['loading-overlay']} aria-label={t('misc.loading')} />;
     }
 
     if (!animeData) {
-        return <div className={styles['body']}>Не удалось загрузить релиз.</div>;
+        return <div className={styles['body']}>{t('release.loadError')}</div>;
     }
+
+    const isReleaseNotStarted = !animeData.episodes_released;
+    const comingSoonText = getComingSoonText(animeData, settings.appearance.language, t('release.soon'));
 
     return(
         <div className={styles['body']}>
@@ -160,7 +165,7 @@ export default function ReleaseScreen(){
                     <select id="watchlist-select" className={`${styles['list-select']} ${styles['action-btn']} ${styles[`status-${animeData?.profile_list_status ?? 0}`]}`} onChange={e => {
                             const newStatus = +e.target.value
                             if (!userToken){
-                                alert("Для смены статуса аниме необходимо войти в аккаунт.")
+                                alert(t('release.loginToChangeStatus'))
                                 return
                             }
                             setAnimeData((prev: Anime) => ({
@@ -171,17 +176,17 @@ export default function ReleaseScreen(){
                                 .catch(err => console.error(err));
                         }} 
                         value={animeData?.profile_list_status ?? 0}>
-                        <option value={0}>Не смотрю</option>
-                        <option value={1}>Смотрю</option>
-                        <option value={2}>В планах</option>
-                        <option value={3}>Просмотрено</option>
-                        <option value={4}>Отложено</option>
-                        <option value={5}>Брошено</option>
+                        <option value={0}>{t('release.notWatching')}</option>
+                        <option value={1}>{t('status.watching')}</option>
+                        <option value={2}>{t('status.planned')}</option>
+                        <option value={3}>{t('status.watched')}</option>
+                        <option value={4}>{t('status.hold_on')}</option>
+                        <option value={5}>{t('status.dropped')}</option>
                     </select>
                     <button className={`${styles['favorite-btn']} ${styles['action-btn']} ${animeData.is_favorite ? styles['favorited'] : ''}`}
                             onClick={async () => {
                                 if (!userToken) {
-                                    alert("Войдите в аккаунт для добавления в избранное.");
+                                    alert(t('release.loginToFavorite'));
                                     return;
                                 }
                                 try {
@@ -201,12 +206,16 @@ export default function ReleaseScreen(){
                             }}
                     ><img src={favoriteIcon} className={`${styles['icon-smaller']} ${animeData.is_favorite ? styles['favorited'] : ''}`}></img>{animeData?.favorites_count || 0}</button>
                 </div>
-                <button onClick={() => setIsDubScreenOpen(true)} className={styles['watch-btn']}>Воспроизвести</button>
+                {isReleaseNotStarted ? (
+                    <button type="button" disabled className={`${styles['watch-btn']} ${styles['watch-btn-soon']}`}>{comingSoonText}</button>
+                ) : (
+                    <button onClick={() => setIsDubScreenOpen(true)} className={styles['watch-btn']}>{t('release.play')}</button>
+                )}
                 <div className={`${styles['grade-container']}`}>
                     <div className={styles['grade']}>
-                        <p>Оценки</p>
+                        <p>{t('release.rating')}</p>
                         <h1>{(animeData.grade ?? 0).toFixed(2)}</h1>
-                        <p>{animeData.vote_count ?? 0} {plural(animeData.vote_count ?? 0, 'голос', 'голоса', 'голосов')}</p>
+                        <p>{animeData.vote_count ?? 0} {plural(animeData.vote_count ?? 0, t('release.votes1'), t('release.votes2'), t('release.votes5'))}</p>
                     </div>
                     <div className={styles['grade-bars']}>
                     {[5,4,3,2,1].map(grade => {
@@ -252,7 +261,7 @@ export default function ReleaseScreen(){
                             </div>}
                         <p>{animeData.description}</p>
                     </div>
-                    <div className={styles['release-details']}>
+                    <div className={`${styles['release-details']} ${screenshots.length === 0 ? styles['release-details-no-screenshots'] : ''}`}>
                         <div className={styles['release-media']}>
                             {screenshots.length > 0 && (
                                 <div className={styles['swiper-container']}>
@@ -289,7 +298,7 @@ export default function ReleaseScreen(){
                                 </div>
                             )}
                             <div>
-                                {animeData.related_releases.length !== 0 && <h3 style={{marginTop: '0px'}}>Связанные релизы</h3>}
+                                {animeData.related_releases.length !== 0 && <h3 style={{marginTop: '0px'}}>{t('release.relatedReleases')}</h3>}
                                 {animeData.related_releases && animeData.related_releases.map((anime:Anime) =>(
                                         <ReleaseCard key={anime.id} variant="related" anime={anime}/>
                                     ))}
@@ -305,7 +314,7 @@ export default function ReleaseScreen(){
                                 </div>
                                 <div className={styles['fact-row']}>
                                     <img src={albumIcon} className={styles['icon']} />
-                                    <p>{animeData.episodes_released} из {animeData.episodes_total || "?"} эп.{animeData.duration ? `, по ~${animeData.duration} мин.` : ""}</p>
+                                    <p>{animeData.episodes_released} {t('misc.outOf')} {animeData.episodes_total || "?"} {t('misc.episodes')}{animeData.duration ? `, ~${animeData.duration} ${t('misc.min')}` : ""}</p>
                                 </div>
                                 <div className={styles['fact-row']}>
                                     <img src={calendarIcon} className={styles['icon']} />
@@ -313,7 +322,7 @@ export default function ReleaseScreen(){
                                 </div>
                                 <div className={styles['fact-row']}> 
                                     <img src={peopleIcon} className={styles['icon']} />
-                                    <p>Студия {animeData.studio}{animeData.author ? `, автор ${animeData.author}`:""}{animeData.director ? `, режиссёр ${animeData.director}`:""}</p>
+                                    <p>{t('misc.studio')} {animeData.studio}{animeData.author ? `, ${t('misc.author')} ${animeData.author}`:""}{animeData.director ? `, ${t('misc.director')} ${animeData.director}`:""}</p>
                                 </div>
                                 <div className={styles['fact-row']}>
                                     <img src={tagsIcon} className={styles['icon']} />
@@ -321,25 +330,34 @@ export default function ReleaseScreen(){
                                 </div>
                             </aside>
                     </div>
+
+                    {animeData.recommended_releases?.length > 0 && <section className={styles['also-recommend']}>
+                        <h3>{t('release.recommendedReleases')}</h3>
+                        <div className={styles['recommend-grid']}>
+                            {animeData.recommended_releases.map(item => (
+                                <RecommendedRelease key={item.id} anime={item}/>
+                            ))}
+                        </div>
+                    </section>}
                     <section className={styles['comments-section']}>
                         <div className={styles['comments-heading']}>
-                            <h3>Комментарии</h3>
+                            <h3>{t('release.commentSection')}</h3>
                         </div>
                         <form className={styles['comment-area']} onSubmit={(event) => {
                             event.preventDefault();
                             void sendComment();
                         }}>
                             {replyTarget && <div className={styles['reply-context']}>
-                                <span>Ответ для <strong>{replyTarget.profile.login}</strong></span>
-                                <button type="button" onClick={() => setReplyTarget(null)} aria-label="Отменить ответ">×</button>
+                                <span>{t('comments.replyFor')}<strong>{replyTarget.profile.login}</strong></span>
+                                <button type="button" onClick={() => setReplyTarget(null)} aria-label={t('release.cancelReply')}>×</button>
                             </div>}
                             {editTarget && <div className={styles['reply-context']}>
-                                <span>Редактирование комментария</span>
-                                <button type="button" onClick={() => setEditTarget(null)} aria-label="Отменить редактирование">×</button>
+                                <span>{t('comments.editing')}</span>
+                                <button type="button" onClick={() => setEditTarget(null)} aria-label={t('release.cancelEdit')}>×</button>
                             </div>}
                             <textarea
                                 ref={commentInputRef}
-                                placeholder="Напишите комментарий…"
+                                placeholder={t('comments.writePlaceholder')}
                                 value={commentText}
                                 maxLength={1000}
                                 onChange={(event) => {
@@ -354,10 +372,10 @@ export default function ReleaseScreen(){
                                         checked={commentSpoiler}
                                         onChange={(event) => setCommentSpoiler(event.target.checked)}
                                     />
-                                    <span>Спойлер</span>
+                                    <span>{t('comments.spoiler')}</span>
                                 </label>
                                 <span className={styles['comment-counter']}>
-                                    {isCommentTooShort ? 'Минимум 5 символов' : `${commentText.length}/1000`}
+                                    {isCommentTooShort ? t('comments.minLength') : `${commentText.length}/1000`}
                                 </span>
                                 <button
                                     type="submit"
@@ -365,12 +383,12 @@ export default function ReleaseScreen(){
                                     disabled={isCommentTooShort || isSendingComment}
                                 >
                                     <img src={sendIcon} alt="" />
-                                    {isSendingComment ? 'Отправка…' : 'Отправить'}
+                                    {isSendingComment ? t('comments.sending') : t('comments.send')}
                                 </button>
                             </div>
                             {commentError && <p className={styles['comment-error']}>{commentError}</p>}
                         </form>
-                        {animeData.comments.length === 0 && <p className={styles['empty-comments']}>Пока нет комментариев. Будь первым.</p>}
+                        {animeData.comments.length === 0 && <p className={styles['empty-comments']}>{t('release.noComments')}</p>}
                         {animeData.comments.map((comment: CommentType) => (
                             <Comment
                                 key={comment.id}
@@ -403,7 +421,7 @@ export default function ReleaseScreen(){
                         episodes,
                         sourceId,
                     });
-                    navigate('./watch');
+                    navigate(`/anime/${animeData.id}/watch`);
                 }}
                 token={userToken}
             />}
@@ -420,7 +438,6 @@ async function GetRelease(id: string | undefined, token: string) {
 async function SendWatchlistChange(id: number, status: number, token: string){
     const response = await fetch(`https://api-s.anixsekai.com/profile/list/add/${status}/${id}?token=${token}`)
     if (response.ok) {
-        console.log("Status successfully changed")
         return
     }
     throw new Error(response.status.toString())
@@ -487,4 +504,23 @@ function plural(value: number, one: string, few: string, many: string) {
     if (lastDigit === 1) return one;
     if (lastDigit >= 2 && lastDigit <= 4) return few;
     return many;
+}
+
+function getComingSoonText(release: Anime, language: 'russian' | 'english', fallback: string) {
+    if (release.aired_on_date > 0) {
+        return new Intl.DateTimeFormat(language === 'english' ? 'en-US' : 'ru-RU', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+        }).format(new Date(release.aired_on_date * 1000));
+    }
+
+    if (release.year) {
+        const seasons = language === 'english'
+            ? ['', 'Winter', 'Spring', 'Summer', 'Autumn']
+            : ['', 'Зима', 'Весна', 'Лето', 'Осень'];
+        const season = seasons[release.season] ?? '';
+        return season ? `${season}, ${release.year}` : release.year;
+    }
+    return fallback;
 }

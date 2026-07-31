@@ -5,6 +5,7 @@ import { useEffect, useState } from "react"
 import type { Profile } from "../shared/types/api"
 import WatchlistLine from "../components/WatchlistLine"
 import { useSearchScope } from '../shared/contexts/searchContext';
+import { useTranslation } from '../shared/useTranslation';
 
 //Icons
 import TgIcon from '../assets/icons/telegram.svg'
@@ -24,11 +25,11 @@ export default function AccountScreen(){
     const {id} = useParams<{id: string}>();
     const {userToken, userId} = useUser()
     const { setSearchScope } = useSearchScope();
+    const { t } = useTranslation();
     const [userObject, setUserObject] = useState<Profile | null>(null);
     const [isLoading, setIsLoading] = useState(true);
 
     const navigate = useNavigate()
-    console.log(userToken)
     useEffect(() => {
         if (userToken === "") navigate('/account/login')
     },[userToken])
@@ -43,11 +44,10 @@ export default function AccountScreen(){
         GetProfileInfo(profileId, userToken)
             .then((data: ProfileAPIResponse) => {
                 setUserObject(data.profile)
-                console.log(data.profile)
             })
-            .catch(err => console.log(err))
+            .catch(err => console.error(err))
             .finally(() => setIsLoading(false))
-    }, [])
+    }, [id])
 
     const watchDynamic = userObject?.watch_dynamics.slice(-10) ?? [];
     const maxValue = Math.max(...watchDynamic.map(({ count }) => count), 1);
@@ -76,28 +76,28 @@ export default function AccountScreen(){
                     <div className={styles['stat-number-div']}>
                         <div className={styles['stat-number']}>
                             <p>{userObject?.comment_count}</p>
-                            <a>комментариев</a>
+                            <a>{t('account.comments')}</a>
                         </div>
                         <div className={styles['stat-number']}>
                             <p>{userObject?.video_count}</p>
-                            <a>видео</a>
+                            <a>{t('account.videos')}</a>
                         </div>
                         <div className={styles['stat-number']}>
                             <p>{userObject?.collection_count}</p>
-                            <a>коллекций</a>
+                            <a>{t('account.collections')}</a>
                         </div>
                         <div className={styles['stat-number']}>
                             <p>{userObject?.friend_count}</p>
-                            <a>друзей</a>
+                            <a>{t('account.friends')}</a>
                         </div>
                     </div>
                 </div>
                 <div className={styles['statistics-card']}>
                     <div className={styles['stat-line']}>
-                        <h2>Статистика</h2>
-                        <a onClick={() => navigate("/favorites")}>Смотреть все</a>
+                        <h2>{t('account.stats')}</h2>
+                        <a onClick={() => navigate("/favorites")}>{t('account.viewAll')}</a>
                     </div>
-                    <p className={styles['statistics-caption']}>Распределение по спискам</p>
+                    <p className={styles['statistics-caption']}>{t('account.distribution')}</p>
                     <WatchlistLine watching_count={userObject?.watching_count || 0}
                         plan_count={userObject?.plan_count || 0}
                         completed_count={userObject?.completed_count || 0}
@@ -105,17 +105,17 @@ export default function AccountScreen(){
                         dropped_count={userObject?.dropped_count || 0}/>
                     <div className={styles['statistics-summary']}>
                         <div>
-                            <span>Просмотрено серий</span>
+                            <span>{t('account.watchedEpisodes')}</span>
                             <strong>{userObject?.watched_episode_count || 0}</strong>
                         </div>
                         <div>
-                            <span>Время просмотра</span>
+                            <span>{t('account.watchedTime')}</span>
                             <strong>{formatSeconds(userObject?.watched_time || 0)}</strong>
                         </div>
                     </div>
                 </div>
                 <div className={styles['dynamics-card']}>
-                    <h2>Динамика просмотра серий</h2>
+                    <h2>{t('account.dynamics')}</h2>
                     <div className={styles['chart']}>
                         {watchDynamic.map((item) => (
                             <div className={styles['column']}>
@@ -129,7 +129,7 @@ export default function AccountScreen(){
             </div>
             <div className={styles['lists-grid']}>
                 <div>
-                    <h2>Оценки релизов</h2>
+                    <h2>{t('account.releaseRating')}</h2>
                         {userObject?.votes.map(item => 
                         <ReleaseCard key={item.id} variant="rated" name={item.title_ru} 
                             poster={item.image} 
@@ -138,7 +138,7 @@ export default function AccountScreen(){
                     )}
                 </div>
                 <div>
-                    <h2>Просмотрено недавно</h2>
+                    <h2>{t('account.watchedRecently')}</h2>
                         {userObject?.history.map(item => 
                         <ReleaseCard key={item.id} variant="history" name={item.title_ru}
                             poster={item.image}

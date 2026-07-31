@@ -5,9 +5,10 @@ import { type AppSettings, defaultAppSettings } from './shared/types/settings';
 import { UserContext } from './shared/contexts/userContext';
 import { SettingsContext } from './shared/contexts/settingsContext';
 import { SearchContext, type SearchScope } from './shared/contexts/searchContext';
+import { getStoredUserToken, setStoredUserToken } from './shared/authToken';
 
 function App() {
-  const [userToken, setUserTokenState] = useState<string>(() => localStorage.getItem('user_token') || "");
+  const [userToken, setUserTokenState] = useState<string>(getStoredUserToken);
   const [userId, setUserIdState] = useState<number>(() => +(localStorage.getItem('user_id') || ""))
   const [settings, setSettings] = useState<AppSettings>(() => {
     const saved = localStorage.getItem('app_settings');
@@ -64,11 +65,7 @@ function App() {
 
   const setUserToken = (token: string) => {
     setUserTokenState(token);
-    if (token) {
-      localStorage.setItem('user_token', token);
-    } else {
-      localStorage.removeItem('user_token');
-    }
+    setStoredUserToken(token);
   };
 
   const setUserId = (id: string | number) => {

@@ -87,7 +87,8 @@
 }
 
 .side-panel {
-    width: 40%;
+    width: min(40%, 550px);
+    flex: 0 0 min(40%, 550px);
     max-height: 100vh;
     align-items: center;
     display: flex;
@@ -97,7 +98,8 @@
 }
 
 .release-info {
-    width: 70%;
+    flex: 1;
+    min-width: 0;
     display: flex;
     flex-direction: column;
 }
@@ -221,6 +223,11 @@
     padding: 2px 0;
 }
 
+.release-details-no-screenshots .release-facts {
+    order: -1;
+    flex-basis: min(100%, 520px);
+}
+
 .fact-row {
     display: flex;
     align-items: center;
@@ -301,6 +308,40 @@
     appearance: none;
     background-color: var(--accent-color);
     color: var(--background-color);
+}
+
+.watch-btn-soon {
+    cursor: default;
+    color: var(--text-color);
+    background: var(--lighter-background-color);
+}
+
+.also-recommend {
+    min-width: 0;
+    margin-top: 28px;
+}
+
+.also-recommend h3 {
+    margin: 0 0 12px;
+}
+
+.recommend-grid {
+    display: flex;
+    gap: 13px;
+    overflow-x: auto;
+    padding: 3px 3px 12px;
+    scroll-padding-inline: 3px;
+    scroll-snap-type: x proximity;
+    scrollbar-color: color-mix(in srgb, var(--text-color) 30%, transparent) transparent;
+}
+
+.recommend-grid::-webkit-scrollbar {
+    height: 8px;
+}
+
+.recommend-grid::-webkit-scrollbar-thumb {
+    border-radius: 99px;
+    background: color-mix(in srgb, var(--text-color) 24%, transparent);
 }
 
 .action-btn {

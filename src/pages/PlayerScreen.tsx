@@ -7,7 +7,7 @@ import { useUser } from '../shared/contexts/userContext';
 import { clearPlayerSession, getPlayerSession, setPlayerSession, type PlayerSession } from '../shared/playerSession';
 import { getWatchProgress, saveWatchProgress } from '../shared/watchProgress';
 import { extractVideoLinks } from '../utils/LinkParser';
-import { canUseAnime4KVideo } from '../shared/anime4kSupport';
+import { canUseAnime4KVideo, checkAnime4KVideoSupport } from '../shared/anime4kSupport';
 import { useTranslation } from '../shared/useTranslation';
 
 import PlayIcon from '../assets/icons/play.svg';
@@ -79,6 +79,9 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
     const [resumePromptTime, setResumePromptTime] = useState<number | null>(null);
     const promptedEpisodesRef = useRef(new Set<string>());
     const [areControlsVisible, setAreControlsVisible] = useState(true);
+    const [webGpuStatus, setWebGpuStatus] = useState<'checking' | 'supported' | 'unsupported'>(() => (
+        canUseAnime4KVideo() ? 'checking' : 'unsupported'
+    ));
 
     const stream = sources[quality]?.[0] ?? sources[qualities[0]]?.[0];
     const timelineProgress = Number.isFinite(duration) && duration > 0
@@ -127,6 +130,21 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
         const updateFullscreen = () => setIsMaximized(document.fullscreenElement !== null);
         document.addEventListener('fullscreenchange', updateFullscreen);
         return () => document.removeEventListener('fullscreenchange', updateFullscreen);
+    }, []);
+
+    useEffect(() => {
+        let isCancelled = false;
+        if (!canUseAnime4KVideo()) return;
+
+        void checkAnime4KVideoSupport()
+            .then(isSupported => {
+                if (!isCancelled) setWebGpuStatus(isSupported ? 'supported' : 'unsupported');
+            })
+            .catch(() => {
+                if (!isCancelled) setWebGpuStatus('unsupported');
+            });
+
+        return () => { isCancelled = true; };
     }, []);
 
     useEffect(() => {
@@ -404,11 +422,19 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
                                     </div>
                                 </section>
                                 <section className={styles['settings-toggle-row']}>
-                                    <span><strong>{t('player.qualityUpgrade')}</strong><small>Anime4K</small></span>
+                                    <span>
+                                        <strong>{t('player.qualityUpgrade')}</strong>
+                                        <small>{webGpuStatus === 'checking'
+                                            ? t('settings.qualityUpscale.webgpuChecking')
+                                            : webGpuStatus === 'unsupported'
+                                                ? t('settings.qualityUpscale.webgpuNotSupported')
+                                                : 'Anime4K'}</small>
+                                    </span>
                                     <label className={styles['player-toggle']}>
                                         <input
                                             type="checkbox"
                                             checked={settings.player.qualityUpgrade}
+                                            disabled={webGpuStatus !== 'supported'}
                                             onChange={event => setSettings(previous => ({
                                                 ...previous,
                                                 player: { ...previous.player, qualityUpgrade: event.target.checked },

@@ -48,7 +48,6 @@ async function handleLogin(username: string, password: string, setUserToken: (to
         const data = await response.json()
         setUserToken(data.profileToken.token)
         setUserId(data.profileToken.id)
-        console.log(data)
         alert(`Logged in:`)
         return
     }

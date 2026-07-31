@@ -180,15 +180,17 @@
 .timeline input {
     appearance: none;
     width: 100%;
-    height: 4px;
+    height: 24px;
     border-radius: 999px;
     background: linear-gradient(
         to right,
         var(--accent-color, #ff6060) 0 var(--progress),
         rgb(150 150 150 / 58%) var(--progress) var(--buffered-progress),
         rgb(22 22 22 / 92%) var(--buffered-progress) 100%
-    );
+    ) center / 100% 4px no-repeat;
     cursor: pointer;
+    margin: -10px 0;
+    touch-action: none;
 }
 
 .timeline input::-webkit-slider-thumb {
@@ -342,6 +344,8 @@
 .player-toggle input:checked + i { background: var(--accent-color, #ff6060); }
 .player-toggle input:checked + i::after { transform: translateX(18px); }
 .player-toggle input:focus-visible + i { outline: 2px solid #fff; outline-offset: 2px; }
+.player-toggle input:disabled + i { cursor: not-allowed; opacity: .45; }
+.player-toggle:has(input:disabled) { cursor: not-allowed; }
 
 .mute-button {
     flex: 0 0 auto;
