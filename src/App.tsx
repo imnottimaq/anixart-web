@@ -81,9 +81,20 @@ function App() {
   // the SPA must not make the server think that the user left the room.
   useEffect(() => {
     if (!activeRoomId || userId <= 0) return;
-    roomSocketRef.current.connect(activeRoomId, getRoomParticipant(userId), () => {}, error => console.error('Ошибка фонового подключения к комнате:', error));
+    roomSocketRef.current.connect(activeRoomId, getRoomParticipant(userId), () => {}, error => {
+      console.error('Ошибка фонового подключения к комнате:', error);
+      // The room may have been deleted after the browser tab was closed.
+      // Do not keep a stale room badge or retry its dead WebSocket forever.
+      setActiveRoomId(null);
+    });
     return () => roomSocketRef.current.disconnect();
-  }, [activeRoomId, userId]);
+  }, [activeRoomId, setActiveRoomId, userId]);
+
+  useEffect(() => {
+    const clearRoomPresence = () => localStorage.removeItem('active_watch_room');
+    window.addEventListener('pagehide', clearRoomPresence);
+    return () => window.removeEventListener('pagehide', clearRoomPresence);
+  }, []);
 
   const setUserToken = (token: string) => {
     setUserTokenState(token);
