@@ -33,7 +33,7 @@ export type RoomMessage =
     | { type: 'set_media'; media: RoomMedia }
     | { type: 'play' | 'pause' | 'seek'; position: number }
     | { type: 'set_rate'; position: number; rate: number }
-    | { type: 'grant_control' | 'revoke_control'; profileId: number };
+    | { type: 'grant_control' | 'revoke_control' | 'kick'; profileId: number };
 
 const ROOM_SERVER_URL = (import.meta.env.VITE_ROOM_SERVER_URL || 'http://localhost:8787').replace(/\/$/, '');
 

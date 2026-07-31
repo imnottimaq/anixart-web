@@ -67,6 +67,7 @@ function ConnectedRoom({ roomId }: { roomId: string }) {
     const [isSearching, setIsSearching] = useState(false);
     const [participantProfiles, setParticipantProfiles] = useState<Record<number, ParticipantProfile>>({});
     const [unavailableProfiles, setUnavailableProfiles] = useState<number[]>([]);
+    const [openParticipantMenu, setOpenParticipantMenu] = useState<number | null>(null);
     const isController = useMemo(() => Boolean(room?.participants.find(item => item.profileId === userId)?.canControl), [room, userId]);
 
     useEffect(() => { setActiveRoomId(roomId); }, [roomId, setActiveRoomId]);
@@ -123,16 +124,27 @@ function ConnectedRoom({ roomId }: { roomId: string }) {
     }, [isController, releaseQuery, room?.media, userToken]);
 
     const grant = (profileId: number, canControl: boolean) => socketRef.current.send({ type: canControl ? 'grant_control' : 'revoke_control', profileId });
+    const kick = (profileId: number) => {
+        socketRef.current.send({ type: 'kick', profileId });
+        setOpenParticipantMenu(null);
+    };
+    const leaveRoom = () => {
+        socketRef.current.send({ type: 'leave' });
+        socketRef.current.disconnect();
+        setActiveRoomId(null);
+        navigate('/watch');
+    };
     return <section className={styles.page}>
         <Link className={styles.back} to="/watch">← Все комнаты</Link>
-        <div className={styles.roomHeader}><div><h1>{room?.title ?? 'Комната'}</h1><p>{room?.visibility === 'private' ? 'Приватная комната' : 'Открытая комната'}</p></div><button type="button" onClick={() => navigator.clipboard.writeText(window.location.href)}>Скопировать ссылку</button></div>
+        <div className={styles.roomHeader}><div><h1>{room?.title ?? 'Комната'}</h1><p>{room?.visibility === 'private' ? 'Приватная комната' : 'Открытая комната'}</p></div><div className={styles['room-actions']}><button className={styles['copy-link']} type="button" onClick={() => navigator.clipboard.writeText(window.location.href)}>Скопировать ссылку</button><button className={styles['leave-room']} type="button" onClick={leaveRoom}>Покинуть</button></div></div>
         <div className={styles.grid}>
             <div className={styles.card}><h2>Сейчас смотрим</h2>{room?.media ? <><strong>{room.media.releaseName}</strong><p>{room.media.episodeName}</p><Link className={styles['open-release']} to={`/anime/${room.media.releaseId}?room=${encodeURIComponent(roomId)}`}>Открыть релиз</Link></> : isController ? <><p className={styles.muted}>Найди релиз, затем выбери озвучку и серию. После этого выбор автоматически попадёт всем в комнату.</p><label className={styles['search-label']}>Поиск аниме<input autoFocus value={releaseQuery} placeholder="Название аниме" onChange={event => setReleaseQuery(event.target.value)} /></label>{isSearching && <p className={styles.muted}>Ищем…</p>}{releaseQuery.trim().length >= 2 && !isSearching && <div className={styles['release-results']}>{releaseResults.length ? releaseResults.map(release => <Link key={release.id} to={`/anime/${release.id}?room=${encodeURIComponent(roomId)}`} state={{ partialAnime: release }}><strong>{release.title_ru}</strong><span>{release.year || 'Год неизвестен'} · {release.episodes_released || 0} эп.</span></Link>) : <p className={styles.muted}>Ничего не найдено.</p>}</div>}</> : <p className={styles.muted}>Ожидаем, пока хост выберет серию.</p>}</div>
             <div className={styles.card}><h2>Участники ({room?.participants.length ?? 0})</h2><div className={styles.participants}>{room?.participants.map(participant => {
                 const profile = participantProfiles[participant.profileId];
                 const login = profile?.login ?? participant.login;
                 const avatar = profile?.avatar ?? participant.avatar;
-                return <div key={participant.profileId}><span className={styles.participant}><span className={styles.avatar}>{avatar ? <RemoteImage src={avatar} alt="" /> : login[0]?.toUpperCase()}</span><span>{login}{participant.profileId === room.hostId ? ' · хост' : ''}</span></span>{room?.visibility === 'public' && userId === room.hostId && participant.profileId !== userId && <button type="button" onClick={() => grant(participant.profileId, !participant.canControl)}>{participant.canControl ? 'Забрать управление' : 'Разрешить управление'}</button>}</div>;
+                const canManage = userId === room?.hostId && participant.profileId !== userId;
+                return <div key={participant.profileId}><span className={styles.participant}><span className={styles.avatar}>{avatar ? <RemoteImage src={avatar} alt="" /> : login[0]?.toUpperCase()}</span><span>{login}{participant.profileId === room.hostId ? ' · хост' : ''}</span></span>{canManage && <div className={styles['participant-menu-wrap']}><button className={styles['participant-menu-button']} type="button" aria-label={`Действия для ${login}`} onClick={() => setOpenParticipantMenu(current => current === participant.profileId ? null : participant.profileId)}>⋮</button>{openParticipantMenu === participant.profileId && <div className={styles['participant-menu']}>{room?.visibility === 'public' && <button type="button" onClick={() => { grant(participant.profileId, !participant.canControl); setOpenParticipantMenu(null); }}>{participant.canControl ? 'Забрать управление' : 'Разрешить управление'}</button>}<button className={styles['kick-button']} type="button" onClick={() => kick(participant.profileId)}>Исключить из комнаты</button></div>}</div>}</div>;
             })}</div></div>
         </div>
         {message && <p className={styles.error}>{message}</p>}

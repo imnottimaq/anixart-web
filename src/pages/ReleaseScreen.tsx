@@ -28,6 +28,7 @@ import sendIcon from '../assets/icons/send.svg'
 import { setPlayerSession } from '../shared/playerSession'
 import { createWatchRoom } from '../shared/watchRoom'
 import { getRoomParticipant } from '../shared/roomParticipant'
+import { useRoomPresence } from '../shared/contexts/roomContext'
 import RecommendedRelease from "../components/RecommendedRelease";
 
 const AGENT_PROXY = "https://kodik-proxy.imnottimaq.workers.dev/agentproxy?url="
@@ -36,6 +37,7 @@ export default function ReleaseScreen(){
     const {id} = useParams<{id: string}>();
     const {userToken, userId, setUserId} = useUser();
     const {settings} = useSettings();
+    const { activeRoomId } = useRoomPresence();
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
@@ -70,6 +72,10 @@ export default function ReleaseScreen(){
     const isCommentTooShort = commentText.trim().length < 5;
 
     const createWatchRoomForRelease = async () => {
+        if (activeRoomId) {
+            navigate(`/anime/${animeData.id}?room=${encodeURIComponent(activeRoomId)}`);
+            return;
+        }
         if (userId <= 0) {
             alert('Войдите в аккаунт, чтобы создать комнату');
             return;
@@ -239,7 +245,7 @@ export default function ReleaseScreen(){
                 ) : (
                     <button onClick={() => setIsDubScreenOpen(true)} className={styles['watch-btn']}>{t('release.play')}</button>
                 )}
-                {!roomId && <button type="button" onClick={() => void createWatchRoomForRelease()} className={styles['watch-room-btn']}>Смотреть вместе</button>}
+                {!roomId && <button type="button" onClick={() => void createWatchRoomForRelease()} className={styles['watch-room-btn']}>{activeRoomId ? 'Смотреть в текущей комнате' : 'Смотреть вместе'}</button>}
                 <div className={`${styles['grade-container']}`}>
                     <div className={styles['grade']}>
                         <p>{t('release.rating')}</p>
