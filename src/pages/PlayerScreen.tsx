@@ -193,6 +193,10 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
             setWatchRoom(state);
             const video = videoRef.current;
             if (!video || !state.media || state.media.releaseId !== animeId || state.media.episode !== episodeNumber) {
+                // The host may have just selected another episode. The socket
+                // can still deliver the previous room state first; never let
+                // that stale state redirect the host back to the old player.
+                if (state.hostId === userId && playerSession.dubId && playerSession.sourceId && episodeNumber !== undefined) return;
                 if (state.media) navigate(roomMediaUrl(roomId, state.media), { replace: true });
                 return;
             }
@@ -213,10 +217,15 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
         });
         const interval = window.setInterval(() => roomSocketRef.current.send({ type: 'sync_request' }), 15_000);
         return () => { window.clearInterval(interval); roomSocketRef.current.disconnect(); };
-    }, [animeId, episodeNumber, navigate, roomId, setActiveRoomId, userId]);
+    }, [animeId, episodeNumber, navigate, playerSession.dubId, playerSession.sourceId, roomId, setActiveRoomId, userId]);
 
     useEffect(() => {
-        if (!roomId || !watchRoom || watchRoom.media || watchRoom.hostId !== userId || !playerSession.dubId || !playerSession.sourceId || episodeNumber === undefined) return;
+        const isCurrentRoomMedia = watchRoom?.media
+            && watchRoom.media.releaseId === animeId
+            && watchRoom.media.dubId === playerSession.dubId
+            && watchRoom.media.sourceId === playerSession.sourceId
+            && watchRoom.media.episode === episodeNumber;
+        if (!roomId || !watchRoom || isCurrentRoomMedia || watchRoom.hostId !== userId || !playerSession.dubId || !playerSession.sourceId || episodeNumber === undefined) return;
         roomSocketRef.current.send({
             type: 'set_media',
             media: {
