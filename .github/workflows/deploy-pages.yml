@@ -37,7 +37,8 @@ jobs:
       - name: Build
         run: npm run build
         env:
-          BASE_PATH: ${{ vars.VITE_ROOM_SERVER_URL }}
+          BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          VITE_ROOM_SERVER_URL: ${{ vars.VITE_ROOM_SERVER_URL }}
 
       - name: Add SPA fallback
         run: cp dist/index.html dist/404.html
