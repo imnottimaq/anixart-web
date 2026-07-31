@@ -1,4 +1,4 @@
-import { useEffect, useState,} from 'react'
+import { useCallback, useEffect, useRef, useState,} from 'react'
 import {  RouterProvider } from 'react-router-dom'
 import { router } from './app/router';
 import { type AppSettings, defaultAppSettings } from './shared/types/settings';
@@ -6,7 +6,9 @@ import { UserContext } from './shared/contexts/userContext';
 import { SettingsContext } from './shared/contexts/settingsContext';
 import { SearchContext, type SearchScope } from './shared/contexts/searchContext';
 import { getStoredUserToken, setStoredUserToken } from './shared/authToken';
-import { saveRoomIdentity } from './shared/roomParticipant';
+import { getRoomParticipant, saveRoomIdentity } from './shared/roomParticipant';
+import { RoomContext } from './shared/contexts/roomContext';
+import { WatchRoomSocket } from './shared/watchRoom';
 
 function App() {
   const [userToken, setUserTokenState] = useState<string>(getStoredUserToken);
@@ -31,6 +33,14 @@ function App() {
     }
   });
   const [searchScope, setSearchScope] = useState<SearchScope>({ type: 'releases' });
+  const [activeRoomId, setActiveRoomIdState] = useState<string | null>(() => localStorage.getItem('active_watch_room'));
+  const roomSocketRef = useRef(new WatchRoomSocket());
+
+  const setActiveRoomId = useCallback((roomId: string | null) => {
+    setActiveRoomIdState(roomId);
+    if (roomId) localStorage.setItem('active_watch_room', roomId);
+    else localStorage.removeItem('active_watch_room');
+  }, []);
 
   useEffect(() => {
     localStorage.setItem('app_settings', JSON.stringify(settings));
@@ -67,6 +77,14 @@ function App() {
     };
   }, [userToken]);
 
+  // This connection intentionally lives above the router. Changing a page in
+  // the SPA must not make the server think that the user left the room.
+  useEffect(() => {
+    if (!activeRoomId || userId <= 0) return;
+    roomSocketRef.current.connect(activeRoomId, getRoomParticipant(userId), () => {}, error => console.error('Ошибка фонового подключения к комнате:', error));
+    return () => roomSocketRef.current.disconnect();
+  }, [activeRoomId, userId]);
+
   const setUserToken = (token: string) => {
     setUserTokenState(token);
     setStoredUserToken(token);
@@ -84,9 +102,11 @@ function App() {
   return (
     <SettingsContext.Provider value={{settings, setSettings}}>
       <UserContext.Provider value={{userToken, setUserToken, userId, setUserId}}>
-        <SearchContext.Provider value={{searchScope, setSearchScope}}>
-          <RouterProvider router={router} />
-        </SearchContext.Provider>
+        <RoomContext.Provider value={{activeRoomId, setActiveRoomId}}>
+          <SearchContext.Provider value={{searchScope, setSearchScope}}>
+            <RouterProvider router={router} />
+          </SearchContext.Provider>
+        </RoomContext.Provider>
       </UserContext.Provider>
     </SettingsContext.Provider>
   )

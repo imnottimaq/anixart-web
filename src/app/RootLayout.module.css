@@ -82,6 +82,26 @@
   text-decoration: none;
 }
 
+.room-indicator {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 38px;
+  margin-left: 8px;
+  padding: 0 11px;
+  border: 1px solid color-mix(in srgb, #43bf62 48%, transparent);
+  border-radius: 11px;
+  color: var(--text-color);
+  text-decoration: none;
+  font-size: 13px;
+  background: color-mix(in srgb, #43bf62 10%, transparent);
+}
+
+.room-indicator:hover { background: color-mix(in srgb, #43bf62 18%, transparent); }
+.room-indicator img { width: 17px; height: 17px; }
+.room-status { width: 7px; height: 7px; border-radius: 50%; background: #43bf62; box-shadow: 0 0 0 3px color-mix(in srgb, #43bf62 18%, transparent); }
+
 
 [data-theme="dark"] .theme-toggle img {
   filter: invert(1);

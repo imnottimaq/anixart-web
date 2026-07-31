@@ -7,11 +7,14 @@ import { useTranslation } from '../shared/useTranslation';
 import SunIcon from '../assets/icons/sun.svg';
 import MoonIcon from '../assets/icons/moon.svg';
 import SettingsIcon from '../assets/icons/gear.svg';
+import UsersIcon from '../assets/icons/users.svg';
+import { useRoomPresence } from '../shared/contexts/roomContext';
 import styles from './RootLayout.module.css';
 
 export default function RootLayout() {
   const { settings, setSettings } = useSettings();
   const { t } = useTranslation();
+  const { activeRoomId } = useRoomPresence();
   const { theme } = settings.appearance;
   const [isFirstTimeOpening, setIsFirstTimeOpeningState] = useState<boolean>(() => localStorage.getItem('onboarded') != "true")
 
@@ -40,6 +43,11 @@ export default function RootLayout() {
             <Link to="/watch" className={styles['nav-link']}>Смотреть вместе</Link>
           </nav>
           <SearchBar />
+          {activeRoomId && <Link
+            to={`/watch/${activeRoomId}`}
+            className={styles['room-indicator']}
+            title="Вы в комнате — вернуться"
+          ><span className={styles['room-status']} /><img src={UsersIcon} alt="" /><span>В комнате</span></Link>}
           <Link
             to="/settings"
             className={`${styles['theme-toggle']} ${styles['settings-link']}`}

@@ -5,6 +5,9 @@ import { createWatchRoom, getPublicWatchRooms, type RoomVisibility, type WatchRo
 import type { Anime } from '../shared/types/api';
 import { getRoomParticipant } from '../shared/roomParticipant';
 import RemoteImage from '../components/RemoteImage';
+import { useRoomPresence } from '../shared/contexts/roomContext';
+
+type ParticipantProfile = { login: string; avatar: string | null };
 import styles from './WatchRoomScreen.module.css';
 
 export default function WatchRoomScreen() {
@@ -55,13 +58,17 @@ function WatchRoomLobby() {
 function ConnectedRoom({ roomId }: { roomId: string }) {
     const navigate = useNavigate();
     const { userId, userToken } = useUser();
+    const { setActiveRoomId } = useRoomPresence();
     const socketRef = useRef(new WatchRoomSocket());
     const [room, setRoom] = useState<WatchRoomState | null>(null);
     const [message, setMessage] = useState('Подключаемся к комнате…');
     const [releaseQuery, setReleaseQuery] = useState('');
     const [releaseResults, setReleaseResults] = useState<Anime[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+    const [participantProfiles, setParticipantProfiles] = useState<Record<number, ParticipantProfile>>({});
     const isController = useMemo(() => Boolean(room?.participants.find(item => item.profileId === userId)?.canControl), [room, userId]);
+
+    useEffect(() => { setActiveRoomId(roomId); }, [roomId, setActiveRoomId]);
 
     useEffect(() => {
         if (userId <= 0) { setMessage('Войдите в аккаунт, чтобы подключиться к комнате'); return; }
@@ -74,6 +81,28 @@ function ConnectedRoom({ roomId }: { roomId: string }) {
         if (!room?.media) return;
         navigate(roomMediaUrl(roomId, room.media), { replace: true });
     }, [navigate, room?.media, roomId]);
+
+    useEffect(() => {
+        if (!room?.participants.length || !userToken) return;
+        let cancelled = false;
+        const missingIds = room.participants
+            .map(participant => participant.profileId)
+            .filter(profileId => !participantProfiles[profileId]);
+        if (!missingIds.length) return;
+
+        void Promise.all(missingIds.map(async profileId => {
+            const response = await fetch(`https://api-s.anixsekai.com/profile/${profileId}?token=${encodeURIComponent(userToken)}`);
+            if (!response.ok) return null;
+            const data = await response.json() as { profile?: { login?: string; avatar?: string | null } };
+            return data.profile?.login ? [profileId, { login: data.profile.login, avatar: data.profile.avatar ?? null }] as const : null;
+        })).then(results => {
+            if (cancelled) return;
+            const loaded = Object.fromEntries(results.filter((item): item is readonly [number, ParticipantProfile] => item !== null));
+            if (Object.keys(loaded).length) setParticipantProfiles(previous => ({ ...previous, ...loaded }));
+        }).catch(error => console.error('Не удалось загрузить профили участников:', error));
+
+        return () => { cancelled = true; };
+    }, [participantProfiles, room?.participants, userToken]);
 
     useEffect(() => {
         const query = releaseQuery.trim();
@@ -98,7 +127,12 @@ function ConnectedRoom({ roomId }: { roomId: string }) {
         <div className={styles.roomHeader}><div><h1>{room?.title ?? 'Комната'}</h1><p>{room?.visibility === 'private' ? 'Приватная комната' : 'Открытая комната'}</p></div><button type="button" onClick={() => navigator.clipboard.writeText(window.location.href)}>Скопировать ссылку</button></div>
         <div className={styles.grid}>
             <div className={styles.card}><h2>Сейчас смотрим</h2>{room?.media ? <><strong>{room.media.releaseName}</strong><p>{room.media.episodeName}</p><Link className={styles['open-release']} to={`/anime/${room.media.releaseId}?room=${encodeURIComponent(roomId)}`}>Открыть релиз</Link></> : isController ? <><p className={styles.muted}>Найди релиз, затем выбери озвучку и серию. После этого выбор автоматически попадёт всем в комнату.</p><label className={styles['search-label']}>Поиск аниме<input autoFocus value={releaseQuery} placeholder="Название аниме" onChange={event => setReleaseQuery(event.target.value)} /></label>{isSearching && <p className={styles.muted}>Ищем…</p>}{releaseQuery.trim().length >= 2 && !isSearching && <div className={styles['release-results']}>{releaseResults.length ? releaseResults.map(release => <Link key={release.id} to={`/anime/${release.id}?room=${encodeURIComponent(roomId)}`} state={{ partialAnime: release }}><strong>{release.title_ru}</strong><span>{release.year || 'Год неизвестен'} · {release.episodes_released || 0} эп.</span></Link>) : <p className={styles.muted}>Ничего не найдено.</p>}</div>}</> : <p className={styles.muted}>Ожидаем, пока хост выберет серию.</p>}</div>
-            <div className={styles.card}><h2>Участники ({room?.participants.length ?? 0})</h2><div className={styles.participants}>{room?.participants.map(participant => <div key={participant.profileId}><span className={styles.participant}><span className={styles.avatar}>{participant.avatar ? <RemoteImage src={participant.avatar} alt="" /> : participant.login[0]?.toUpperCase()}</span><span>{participant.login}{participant.profileId === room.hostId ? ' · хост' : ''}</span></span>{room?.visibility === 'public' && userId === room.hostId && participant.profileId !== userId && <button type="button" onClick={() => grant(participant.profileId, !participant.canControl)}>{participant.canControl ? 'Забрать управление' : 'Разрешить управление'}</button>}</div>)}</div></div>
+            <div className={styles.card}><h2>Участники ({room?.participants.length ?? 0})</h2><div className={styles.participants}>{room?.participants.map(participant => {
+                const profile = participantProfiles[participant.profileId];
+                const login = profile?.login ?? participant.login;
+                const avatar = profile?.avatar ?? participant.avatar;
+                return <div key={participant.profileId}><span className={styles.participant}><span className={styles.avatar}>{avatar ? <RemoteImage src={avatar} alt="" /> : login[0]?.toUpperCase()}</span><span>{login}{participant.profileId === room.hostId ? ' · хост' : ''}</span></span>{room?.visibility === 'public' && userId === room.hostId && participant.profileId !== userId && <button type="button" onClick={() => grant(participant.profileId, !participant.canControl)}>{participant.canControl ? 'Забрать управление' : 'Разрешить управление'}</button>}</div>;
+            })}</div></div>
         </div>
         {message && <p className={styles.error}>{message}</p>}
     </section>;

@@ -17,6 +17,7 @@ import { canUseAnime4KVideo, checkAnime4KVideoSupport } from '../shared/anime4kS
 import { useTranslation } from '../shared/useTranslation';
 import { type WatchRoomState, WatchRoomSocket } from '../shared/watchRoom';
 import { getRoomParticipant } from '../shared/roomParticipant';
+import { useRoomPresence } from '../shared/contexts/roomContext';
 
 import PlayIcon from '../assets/icons/play.svg';
 import PauseIcon from '../assets/icons/pause.svg';
@@ -101,6 +102,7 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
     const { settings, setSettings } = useSettings();
     const { t } = useTranslation();
     const { userToken, userId } = useUser();
+    const { setActiveRoomId } = useRoomPresence();
     const playerRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const upscaleCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -146,6 +148,8 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
     ));
 
     const stream = sources[selectedQuality]?.[0];
+
+    useEffect(() => { if (roomId) setActiveRoomId(roomId); }, [roomId, setActiveRoomId]);
     const timelineProgress = Number.isFinite(duration) && duration > 0
         ? Math.min((currentTime / duration) * 100, 100)
         : 0;
@@ -547,6 +551,7 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
 
                                     video.currentTime = nextTime;
                                     setCurrentTime(nextTime);
+                                    sendRoomPlayback('seek', nextTime);
                                 }}
                             >
                                 <img src={SkipIcon} />
