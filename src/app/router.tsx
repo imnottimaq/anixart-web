@@ -11,6 +11,7 @@ import RecoverScreen from '../pages/RecoverScreen';
 import NewAccountScreen from '../pages/NewAccountScreen';
 import RandomAnime from '../pages/RandomAnime';
 import SettingsScreen from '../pages/SettingsScreen';
+import WatchRoomScreen from '../pages/WatchRoomScreen';
 
 const basename = import.meta.env.BASE_URL === '/'
     ? undefined
@@ -33,6 +34,8 @@ export const router = createBrowserRouter([
     { path: 'account/create', element: <NewAccountScreen /> },
     { path: 'random', element: <RandomAnime /> },
     { path: 'settings', element: <SettingsScreen />}
+    ,{ path: 'watch', element: <WatchRoomScreen />}
+    ,{ path: 'watch/:roomId', element: <WatchRoomScreen />}
     ],
 },
 ], { basename });

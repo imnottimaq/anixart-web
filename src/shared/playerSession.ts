@@ -9,6 +9,7 @@ export interface PlayerSession {
     episodeNumber?: number;
     episodeName?: string;
     episodes?: PlayerSessionEpisode[];
+    dubId?: number;
     sourceId?: number;
 }
 

@@ -37,6 +37,7 @@ export default function RootLayout() {
             <Link to="/favorites" className={styles['nav-link']}>{t('nav.favorites')}</Link>
             <Link to="/account" className={styles['nav-link']}>{t('nav.account')}</Link>
             <Link to="/random" className={styles['nav-link']}>{t('nav.random')}</Link>
+            <Link to="/watch" className={styles['nav-link']}>Смотреть вместе</Link>
           </nav>
           <SearchBar />
           <Link

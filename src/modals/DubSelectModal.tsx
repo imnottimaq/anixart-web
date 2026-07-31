@@ -16,7 +16,7 @@ interface DubSelectModalProps {
   onClose: () => void;
   releaseId: number;
   token: string;
-  onEpisodeSelect: (sources: VideoSources, episode: PlayerSessionEpisode, episodes: PlayerSessionEpisode[], sourceId: number) => void;
+  onEpisodeSelect: (sources: VideoSources, episode: PlayerSessionEpisode, episodes: PlayerSessionEpisode[], sourceId: number, dubId: number) => void;
 }
 
 interface Dub {
@@ -171,7 +171,7 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, onEp
                                         name,
                                         position,
                                         url,
-                                    })), selectedSource);
+                                    })), selectedSource, selectedDub);
                             }}>
                                 <h3>{episode.name}</h3>
                                 <div className={styles['episode-meta']}>

@@ -37,6 +37,7 @@ export default function ReleaseScreen(){
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
+    const roomId = new URLSearchParams(location.search).get('room');
     const partialData = location.state?.partialAnime || null;
 
     const [animeData, setAnimeData] = useState<Anime>(partialData);
@@ -410,7 +411,7 @@ export default function ReleaseScreen(){
                 isOpen={isDubScreenOpen}
                 onClose={() => setIsDubScreenOpen(false)}
                 releaseId={animeData?.id}
-                onEpisodeSelect={(sources, episode, episodes, sourceId) => {
+                onEpisodeSelect={(sources, episode, episodes, sourceId, dubId) => {
                     setIsDubScreenOpen(false)
                     setPlayerSession({
                         sources,
@@ -419,9 +420,10 @@ export default function ReleaseScreen(){
                         episodeNumber: episode.position,
                         episodeName: episode.name,
                         episodes,
+                        dubId,
                         sourceId,
                     });
-                    navigate(`/anime/${animeData.id}/watch`);
+                    navigate(`/anime/${animeData.id}/watch${roomId ? `?room=${encodeURIComponent(roomId)}` : ''}`);
                 }}
                 token={userToken}
             />}

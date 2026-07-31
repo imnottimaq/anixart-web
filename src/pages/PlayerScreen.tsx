@@ -1,5 +1,5 @@
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
+import { Navigate, useNavigate, useSearchParams } from 'react-router-dom';
 import Hls, {
     XhrLoader,
     type FragmentLoaderConstructor,
@@ -15,6 +15,7 @@ import { getWatchProgress, saveWatchProgress } from '../shared/watchProgress';
 import { extractVideoLinks } from '../utils/LinkParser';
 import { canUseAnime4KVideo, checkAnime4KVideoSupport } from '../shared/anime4kSupport';
 import { useTranslation } from '../shared/useTranslation';
+import { type WatchRoomState, WatchRoomSocket } from '../shared/watchRoom';
 
 import PlayIcon from '../assets/icons/play.svg';
 import PauseIcon from '../assets/icons/pause.svg';
@@ -82,6 +83,7 @@ class CorsFallbackFragmentLoader extends XhrLoader {
 
 export default function PlayerScreen() {
     const [playerSession, setCurrentPlayerSession] = useState(getPlayerSession);
+    const [searchParams] = useSearchParams();
 
     if (!playerSession) return <Navigate to="/" replace />;
 
@@ -90,14 +92,14 @@ export default function PlayerScreen() {
         setCurrentPlayerSession(nextSession);
     };
 
-    return <PlayerContent playerSession={playerSession} onSessionChange={updateSession} />;
+    return <PlayerContent playerSession={playerSession} onSessionChange={updateSession} roomId={searchParams.get('room')} />;
 }
 
-function PlayerContent({ playerSession, onSessionChange }: { playerSession: PlayerSession; onSessionChange: (session: PlayerSession) => void }) {
+function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSession: PlayerSession; onSessionChange: (session: PlayerSession) => void; roomId: string | null }) {
     const navigate = useNavigate();
     const { settings, setSettings } = useSettings();
     const { t } = useTranslation();
-    const { userToken } = useUser();
+    const { userToken, userId } = useUser();
     const playerRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
     const upscaleCanvasRef = useRef<HTMLCanvasElement>(null);
@@ -134,6 +136,9 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
     const [streamError, setStreamError] = useState<string | null>(null);
     const promptedEpisodesRef = useRef(new Set<string>());
     const fallbackPositionRef = useRef<{ time: number; shouldPlay: boolean } | null>(null);
+    const roomSocketRef = useRef(new WatchRoomSocket());
+    const applyingRoomStateRef = useRef(false);
+    const [watchRoom, setWatchRoom] = useState<WatchRoomState | null>(null);
     const [areControlsVisible, setAreControlsVisible] = useState(true);
     const [webGpuStatus, setWebGpuStatus] = useState<'checking' | 'supported' | 'unsupported'>(() => (
         canUseAnime4KVideo() ? 'checking' : 'unsupported'
@@ -167,6 +172,51 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
 
         saveWatchProgress(animeId, episodeKey, video.ended ? -1 : Math.floor(video.currentTime));
     }, [animeId, episodeKey, settings.content.rememberEpisodeTime]);
+
+    const sendRoomPlayback = useCallback((type: 'play' | 'pause' | 'seek' | 'set_rate', position: number, rate?: number) => {
+        if (!roomId || applyingRoomStateRef.current) return;
+        const canControl = watchRoom?.participants.some(participant => participant.profileId === userId && participant.canControl);
+        if (!canControl) return;
+        if (type === 'set_rate') roomSocketRef.current.send({ type, position, rate: rate ?? 1 });
+        else roomSocketRef.current.send({ type, position });
+    }, [roomId, userId, watchRoom]);
+
+    useEffect(() => {
+        if (!roomId || userId <= 0) return;
+        const participant = { profileId: userId, login: `User ${userId}` };
+        roomSocketRef.current.connect(roomId, participant, state => {
+            setWatchRoom(state);
+            const video = videoRef.current;
+            if (!video || !state.media || state.media.releaseId !== animeId || state.media.episode !== episodeNumber) return;
+
+            const targetTime = state.playback.paused
+                ? state.playback.position
+                : state.playback.position + ((Date.now() - state.playback.updatedAt) / 1000) * state.playback.rate;
+            applyingRoomStateRef.current = true;
+            if (Math.abs(video.currentTime - targetTime) > .75) video.currentTime = targetTime;
+            video.playbackRate = state.playback.rate;
+            if (state.playback.paused && !video.paused) video.pause();
+            if (!state.playback.paused && video.paused) void video.play().catch(error => console.error('Не удалось синхронизировать плеер:', error));
+            window.setTimeout(() => { applyingRoomStateRef.current = false; }, 120);
+        }, error => console.error('Ошибка комнаты:', error));
+        const interval = window.setInterval(() => roomSocketRef.current.send({ type: 'sync_request' }), 15_000);
+        return () => { window.clearInterval(interval); roomSocketRef.current.disconnect(); };
+    }, [animeId, episodeNumber, roomId, userId]);
+
+    useEffect(() => {
+        if (!roomId || !watchRoom || watchRoom.media || watchRoom.hostId !== userId || !playerSession.dubId || !playerSession.sourceId || episodeNumber === undefined) return;
+        roomSocketRef.current.send({
+            type: 'set_media',
+            media: {
+                releaseId: animeId,
+                releaseName: animeName,
+                dubId: playerSession.dubId,
+                sourceId: playerSession.sourceId,
+                episode: episodeNumber,
+                episodeName: episodeName ?? `Серия ${episodeNumber}`,
+            },
+        });
+    }, [animeId, animeName, episodeName, episodeNumber, playerSession.dubId, playerSession.sourceId, roomId, userId, watchRoom]);
 
     const switchToLowerQuality = useCallback(() => {
         const currentIndex = qualities.indexOf(selectedQuality);
@@ -553,7 +603,10 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
                                         {PLAYBACK_RATES.map(rate => (
                                             <button key={rate} type="button" className={playbackRate === rate ? styles.selected : ''} onClick={() => {
                                                 setPlaybackRate(rate);
-                                                if (videoRef.current) videoRef.current.playbackRate = rate;
+                                                if (videoRef.current) {
+                                                    videoRef.current.playbackRate = rate;
+                                                    sendRoomPlayback('set_rate', videoRef.current.currentTime, rate);
+                                                }
                                             }}>{rate}×</button>
                                         ))}
                                     </div>
@@ -595,6 +648,7 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
                                 if (videoRef.current) videoRef.current.currentTime = nextTime;
                                 setCurrentTime(nextTime);
                             }}
+                            onChange={event => sendRoomPlayback('seek', Number(event.currentTarget.value))}
                         />
                     </div>
                 </div>
@@ -604,8 +658,14 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
                     ref={videoRef}
                     preload="auto"
                     crossOrigin="anonymous"
-                    onPlay={() => setIsPlaying(true)}
-                    onPause={() => setIsPlaying(false)}
+                    onPlay={event => {
+                        setIsPlaying(true);
+                        sendRoomPlayback('play', event.currentTarget.currentTime);
+                    }}
+                    onPause={event => {
+                        setIsPlaying(false);
+                        sendRoomPlayback('pause', event.currentTarget.currentTime);
+                    }}
                     playsInline
                     className={styles.video}
                     onEnded={() => {

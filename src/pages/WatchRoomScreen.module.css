@@ -1,0 +1,73 @@
+.page {
+    width: min(1040px, 100%);
+    margin: 0 auto;
+    padding: 32px 20px 52px;
+    box-sizing: border-box;
+}
+
+.hero { margin-bottom: 24px; }
+.hero h1, .roomHeader h1 { margin: 0; }
+.hero p, .roomHeader p, .muted { color: var(--text-secondary); }
+
+.grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; }
+
+.card {
+    padding: 20px;
+    border: 1px solid var(--border-color);
+    border-radius: 16px;
+    background: var(--card-bg);
+}
+
+.card h2 { margin-top: 0; }
+
+.card label {
+    display: grid;
+    gap: 6px;
+    margin: 14px 0;
+}
+
+.card input, .card select {
+    padding: 10px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    color: var(--text-color);
+    background: var(--background-color);
+    font: inherit;
+}
+
+.card button, .open-release {
+    padding: 9px 13px;
+    border: 0;
+    border-radius: 9px;
+    cursor: pointer;
+    color: var(--accent-text-color);
+    background: var(--accent-color);
+    font: inherit;
+}
+
+.cardHeading, .roomHeader, .participants > div { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cardHeading button, .participants button { color: var(--accent-color); background: transparent; }
+.rooms, .participants { display: grid; gap: 8px; }
+
+.rooms a {
+    display: grid;
+    gap: 3px;
+    padding: 11px;
+    border-radius: 10px;
+    color: inherit;
+    text-decoration: none;
+    background: color-mix(in srgb, var(--text-color) 6%, transparent);
+}
+
+.rooms span { color: var(--text-secondary); font-size: 13px; }
+.participants > div { padding: 8px 0; border-bottom: 1px solid var(--border-color); }
+.error { margin-top: 16px; color: var(--status-dropped); }
+.back { color: var(--accent-color); text-decoration: none; }
+.roomHeader { margin: 16px 0 24px; }
+.release-picker { display: flex; gap: 8px; }
+.release-picker input { min-width: 0; flex: 1; }
+.open-release { display: inline-flex; align-items: center; justify-content: center; text-decoration: none; white-space: nowrap; }
+
+@media (max-width: 700px) {
+    .grid { grid-template-columns: 1fr; }
+}
