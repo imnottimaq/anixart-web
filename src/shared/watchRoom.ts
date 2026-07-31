@@ -63,6 +63,12 @@ export async function getPublicWatchRooms() {
     return response.json() as Promise<{ rooms: Array<Pick<WatchRoomState, 'roomId' | 'title' | 'hostId' | 'media'> & { participants: number }>; cursor: string | null }>;
 }
 
+export async function getWatchRoomProfile(profileId: number) {
+    const response = await fetch(`${ROOM_SERVER_URL}/profiles/${profileId}`);
+    if (!response.ok) throw new Error(`Не удалось загрузить профиль: ${response.status}`);
+    return response.json() as Promise<{ profile?: { login?: string; avatar?: string | null } }>;
+}
+
 export class WatchRoomSocket {
     private socket: WebSocket | null = null;
 

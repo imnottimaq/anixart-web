@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useUser } from '../shared/contexts/userContext';
-import { createWatchRoom, getPublicWatchRooms, type RoomVisibility, type WatchRoomState, WatchRoomSocket } from '../shared/watchRoom';
+import { createWatchRoom, getPublicWatchRooms, getWatchRoomProfile, type RoomVisibility, type WatchRoomState, WatchRoomSocket } from '../shared/watchRoom';
 import type { Anime } from '../shared/types/api';
 import { getRoomParticipant } from '../shared/roomParticipant';
 import RemoteImage from '../components/RemoteImage';
@@ -91,11 +91,7 @@ function ConnectedRoom({ roomId }: { roomId: string }) {
         if (!missingIds.length) return;
 
         void Promise.all(missingIds.map(async profileId => {
-            // Public profiles do not require a token. This also lets the room
-            // resolve names when the saved login token has not loaded yet.
-            const response = await fetch(`https://api-s.anixsekai.com/profile/${profileId}`);
-            if (!response.ok) return null;
-            const data = await response.json() as { profile?: { login?: string; avatar?: string | null } };
+            const data = await getWatchRoomProfile(profileId);
             return data.profile?.login ? [profileId, { login: data.profile.login, avatar: data.profile.avatar ?? null }] as const : null;
         })).then(results => {
             if (cancelled) return;
