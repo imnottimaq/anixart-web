@@ -2,6 +2,7 @@ import { useState } from 'react';
 import type { Filter } from '../shared/types/api';
 import { Modal } from './ModalTemplate';
 import styles from './FilterModal.module.css';
+import { useTranslation } from '../shared/useTranslation';
 
 type FilterModalProps = {
     isOpen: boolean;
@@ -10,9 +11,10 @@ type FilterModalProps = {
     setFilter: (filter: Filter) => void;
 };
 
-const PROFILE_LISTS = [[0, 'Избранное'], [1, 'Смотрю'], [2, 'В планах'], [3, 'Просмотрено'], [4, 'Отложено'], [5, 'Брошено']] as const;
+const PROFILE_LISTS = [[0, 'nav.favorites'], [1, 'status.watching'], [2, 'status.planned'], [3, 'status.watched'], [4, 'status.hold_on'], [5, 'status.dropped']] as const;
 
 export default function FilterModal({ isOpen, onClose, filter = {}, setFilter }: FilterModalProps) {
+    const { t } = useTranslation();
     const [draft, setDraft] = useState<Filter>(filter);
     const update = <K extends keyof Filter>(key: K, value: Filter[K]) => setDraft(previous => ({ ...previous, [key]: value }));
     const updateNumber = (key: 'start_year' | 'end_year' | 'episodes_from' | 'episodes_to' | 'episode_duration_from' | 'episode_duration_to', value: string) => update(key, value === '' ? undefined : Number(value));
@@ -26,16 +28,16 @@ export default function FilterModal({ isOpen, onClose, filter = {}, setFilter }:
         onClose();
     };
 
-    return <Modal isOpen={isOpen} onClose={onClose} title="Фильтры" size="large" contentClassName={styles.modal}>
+    return <Modal isOpen={isOpen} onClose={onClose} title={t('filter.title')} size="large" contentClassName={styles.modal}>
         <div className={styles.fields}>
-            <Field label="Страна"><select value={draft.country ?? ''} onChange={event => update('country', (event.target.value || undefined) as Filter['country'])}><option value="">Неважно</option><option value="Япония">Япония</option><option value="Китай">Китай</option><option value="Южная Корея">Южная Корея</option></select></Field>
-            <Field label="Категория"><select value={draft.category_id ?? ''} onChange={event => update('category_id', event.target.value === '' ? undefined : Number(event.target.value) as Filter['category_id'])}><option value="">Неважно</option><option value="1">Сериал</option><option value="2">Фильм</option><option value="3">OVA</option><option value="4">Дорама</option></select></Field>
-            <Field label="Жанры" hint="Перечисли через запятую. Обычно достаточно 2–3 жанров."><input value={(draft.genres ?? []).join(', ')} onChange={event => update('genres', event.target.value.split(',').map(item => item.trim()).filter(Boolean))} placeholder="Например: экшен, фэнтези" /></Field>
-            <label className={styles.checkbox}><input type="checkbox" checked={draft.is_genres_exclude_mode_enabled ?? false} onChange={event => update('is_genres_exclude_mode_enabled', event.target.checked || undefined)} />Исключать указанные жанры</label>
-            <Field label="Варианты озвучек" hint="Перечисли через запятую."><input value={(draft.types ?? []).join(', ')} onChange={event => update('types', event.target.value.split(',').map(item => item.trim()).filter(Boolean))} placeholder="Например: Озвучка, Субтитры" /></Field>
-            <div className={styles['two-columns']}><Field label="Студия"><input value={draft.studio ?? ''} onChange={event => update('studio', event.target.value || undefined)} placeholder="Неважно" /></Field><Field label="Первоисточник"><input value={draft.source ?? ''} onChange={event => update('source', event.target.value || undefined)} placeholder="Неважно" /></Field></div>
-            <fieldset className={styles.fieldset}><legend>Исключить закладки</legend><div className={styles['checkbox-grid']}>
-                {PROFILE_LISTS.map(([id, label]) => <label className={styles.checkbox} key={id}><input type="checkbox" checked={(draft.profile_list_exclusions ?? []).includes(id)} onChange={() => toggleProfileList(id)} />{label}</label>)}
+            <Field label={t('filter.country')}><select value={draft.country ?? ''} onChange={event => update('country', (event.target.value || undefined) as Filter['country'])}><option value="">{t('misc.notImportant')}</option><option value="Япония">{t('country.japan')}</option><option value="Китай">{t('country.china')}</option><option value="Южная Корея">{t('country.southKorea')}</option></select></Field>
+            <Field label={t('filter.category')}><select value={draft.category_id ?? ''} onChange={event => update('category_id', event.target.value === '' ? undefined : Number(event.target.value) as Filter['category_id'])}><option value="">{t('misc.notImportant')}</option><option value="1">{t('releaseType.series')}</option><option value="2">{t('releaseType.film')}</option><option value="3">OVA</option><option value="4">{t('releaseType.dorama')}</option></select></Field>
+            <Field label={t('filter.genres')} hint={t('filter.genresHint')}><input value={(draft.genres ?? []).join(', ')} onChange={event => update('genres', event.target.value.split(',').map(item => item.trim()).filter(Boolean))} placeholder={t('filter.genresHint')} /></Field>
+            <label className={styles.checkbox}><input type="checkbox" checked={draft.is_genres_exclude_mode_enabled ?? false} onChange={event => update('is_genres_exclude_mode_enabled', event.target.checked || undefined)} />{t('filter.excludeGenres')}</label>
+            <Field label={t('filter.dubs')} hint={t('filter.genresHint')}><input value={(draft.types ?? []).join(', ')} onChange={event => update('types', event.target.value.split(',').map(item => item.trim()).filter(Boolean))} placeholder={t('filter.dubs')} /></Field>
+            <div className={styles['two-columns']}><Field label={t('filter.studio')}><input value={draft.studio ?? ''} onChange={event => update('studio', event.target.value || undefined)} placeholder={t('misc.notImportant')} /></Field><Field label={t('filter.source')}><input value={draft.source ?? ''} onChange={event => update('source', event.target.value || undefined)} placeholder={t('misc.notImportant')} /></Field></div>
+            <fieldset className={styles.fieldset}><legend>{t('filter.excludeLists')}</legend><div className={styles['checkbox-grid']}>
+                {PROFILE_LISTS.map(([id, label]) => <label className={styles.checkbox} key={id}><input type="checkbox" checked={(draft.profile_list_exclusions ?? []).includes(id)} onChange={() => toggleProfileList(id)} />{t(label)}</label>)}
             </div></fieldset>
             <div className={styles['two-columns']}><Field label="Годы: от"><input type="number" min="1900" max="2100" value={draft.start_year ?? ''} onChange={event => updateNumber('start_year', event.target.value)} placeholder="Неважно" /></Field><Field label="Годы: до"><input type="number" min="1900" max="2100" value={draft.end_year ?? ''} onChange={event => updateNumber('end_year', event.target.value)} placeholder="Неважно" /></Field></div>
             <div className={styles['two-columns']}><Field label="Эпизодов: от"><input type="number" min="1" value={draft.episodes_from ?? ''} onChange={event => updateNumber('episodes_from', event.target.value)} placeholder="Неважно" /></Field><Field label="Эпизодов: до"><input type="number" min="1" value={draft.episodes_to ?? ''} onChange={event => updateNumber('episodes_to', event.target.value)} placeholder="Неважно" /></Field></div>
@@ -44,7 +46,7 @@ export default function FilterModal({ isOpen, onClose, filter = {}, setFilter }:
             <Field label="Возрастное ограничение"><select value={draft.age_ratings?.[0] ?? ''} onChange={event => update('age_ratings', event.target.value === '' ? [] : [Number(event.target.value)] as Filter['age_ratings'])}><option value="">Неважно</option><option value="1">0+</option><option value="2">6+</option><option value="3">12+</option><option value="4">16+</option><option value="5">18+</option></select></Field>
             <Field label="Сортировка"><select value={draft.sort ?? 0} onChange={event => update('sort', Number(event.target.value) as Filter['sort'])}><option value="0">По дате добавления</option><option value="1">По рейтингу</option><option value="2">По годам</option><option value="3">По популярности</option></select></Field>
         </div>
-        <div className={styles.actions}><button type="button" className={styles.reset} onClick={() => setDraft({})}>Сбросить</button><button type="button" className={styles.apply} onClick={apply}>Применить</button></div>
+        <div className={styles.actions}><button type="button" className={styles.reset} onClick={() => setDraft({})}>{t('misc.reset')}</button><button type="button" className={styles.apply} onClick={apply}>{t('misc.apply')}</button></div>
     </Modal>;
 }
 

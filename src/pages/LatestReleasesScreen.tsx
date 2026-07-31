@@ -7,14 +7,10 @@ import { useUser } from '../shared/contexts/userContext';
 import { useSettings } from '../shared/contexts/settingsContext';
 import styles from './LatestReleasesScreen.module.css';
 import FilterModal from '../modals/FilterModal';
+import { useTranslation } from '../shared/useTranslation';
 
-const PAGE_ITEMS: { page: Page; buttonText: string }[] = [
-    { page: 'my', buttonText: 'Моя вкладка' },
-    { page: 'latest', buttonText: 'Последнее' },
-    { page: 'ongoing', buttonText: 'Онгоинги' },
-    { page: 'announced', buttonText: 'Анонсы' },
-    { page: 'ended', buttonText: 'Завершённые' },
-    { page: 'films', buttonText: 'Фильмы' },
+const PAGE_ITEMS: { page: Page; buttonText: 'home.my' | 'home.latest' | 'home.ongoing' | 'home.announced' | 'home.completed' | 'home.films' }[] = [
+    { page: 'my', buttonText: 'home.my' }, { page: 'latest', buttonText: 'home.latest' }, { page: 'ongoing', buttonText: 'home.ongoing' }, { page: 'announced', buttonText: 'home.announced' }, { page: 'ended', buttonText: 'home.completed' }, { page: 'films', buttonText: 'home.films' },
 ];
 
 const DEFAULT_FILTERS: Record<Exclude<Page, 'my'>, Filter> = {
@@ -23,6 +19,15 @@ const DEFAULT_FILTERS: Record<Exclude<Page, 'my'>, Filter> = {
     announced: { status_id: 3 },
     ended: { status_id: 1 },
     films: { category_id: 2 },
+};
+
+const HOME_TAB_BY_SETTING: Record<'latest' | 'my' | 'ongoing' | 'announced' | 'finished' | 'films', Page> = {
+    latest: 'latest',
+    my: 'my',
+    ongoing: 'ongoing',
+    announced: 'announced',
+    finished: 'ended',
+    films: 'films',
 };
 
 const EMPTY_FILTER: Required<Filter> = {
@@ -74,9 +79,10 @@ function getMyFilters(): Filter {
 export default function LatestReleasesScreen() {
     const { userToken } = useUser();
     const { settings } = useSettings();
+    const { t } = useTranslation();
     const triggerRef = useRef<HTMLDivElement | null>(null);
     const loadingRequestsRef = useRef(new Set<string>());
-    const [activePage, setActivePage] = useState<Page>('latest');
+    const [activePage, setActivePage] = useState<Page>(() => HOME_TAB_BY_SETTING[settings.content.defaultTabOnHome]);
     const [myFilters, setMyFilters] = useState<Filter>(getMyFilters);
     const [isFilterModalOpen, setIsFilterModalOpen] = useState(false);
     const [filterError, setFilterError] = useState<string | null>(null);
@@ -181,7 +187,7 @@ export default function LatestReleasesScreen() {
                         className={activePage === page ? styles.active : ''}
                         onClick={() => setActivePage(page)}
                     >
-                        {buttonText}
+                        {t(buttonText)}
                     </button>
                 ))}
             </div>
@@ -189,13 +195,13 @@ export default function LatestReleasesScreen() {
             <div className={styles.content}>
                 {isMyTabUnconfigured ? (
                     <div className={styles['empty-my-tab']}>
-                        <button type="button" className={styles['configure-button']} onClick={() => setIsFilterModalOpen(true)}>Настроить</button>
+                        <button type="button" className={styles['configure-button']} onClick={() => setIsFilterModalOpen(true)}>{t('misc.configure')}</button>
                     </div>
                 ) : (
                     <>
-                        {activePage === 'my' && <button type="button" className={styles['configure-button']} onClick={() => setIsFilterModalOpen(true)}>Изменить фильтры</button>}
+                        {activePage === 'my' && <button type="button" className={styles['configure-button']} onClick={() => setIsFilterModalOpen(true)}>{t('misc.changeFilters')}</button>}
                         {filterError && <p className={styles['filter-error']}>{filterError}</p>}
-                        {!filterError && !activeTab.isLoading && activeTab.releases.length === 0 && <p className={styles['filter-empty']}>По выбранным фильтрам ничего не найдено.</p>}
+                        {!filterError && !activeTab.isLoading && activeTab.releases.length === 0 && <p className={styles['filter-empty']}>{t('search.empty')}</p>}
                         <div className={`${styles['releases-grid']} ${settings.appearance.defaultCardType === 'horizontal' ? styles['horizontal-grid'] : ''}`}>
                             {activeTab.releases.map(anime => (
                                 settings.appearance.defaultCardType === 'vertical'
@@ -203,13 +209,13 @@ export default function LatestReleasesScreen() {
                                     : <AnimeCardHorizontal key={anime.id} anime={anime} />
                             ))}
                             <div ref={triggerRef} style={{ height: '20px', background: 'transparent' }} />
-                            {isLoadingMore && <div className={styles['loading-more']} role="status">Загружаем ещё релизы…</div>}
+                            {isLoadingMore && <div className={styles['loading-more']} role="status">{t('misc.loading')}</div>}
                         </div>
                     </>
                 )}
             </div>
 
-            {isInitialLoading && <div className={styles['loading-overlay']} role="status" aria-label="Загрузка релизов" />}
+            {isInitialLoading && <div className={styles['loading-overlay']} role="status" aria-label={t('misc.loading')} />}
             <FilterModal
                 isOpen={isFilterModalOpen}
                 onClose={() => setIsFilterModalOpen(false)}

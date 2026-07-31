@@ -2,35 +2,37 @@ import { useState } from "react"
 import { Link, useNavigate } from "react-router-dom";
 import { useUser } from "../shared/contexts/userContext";
 import styles from './LoginScreen.module.css'
+import { useTranslation } from '../shared/useTranslation';
 
 export default function LoginScreen(){
     const [username, setUsername] = useState<string>("")
     const [password, setPassword] = useState<string>("")
     const {userToken, setUserToken, setUserId} = useUser()
     const navigate = useNavigate()
+    const { t } = useTranslation();
 
     if (userToken !== "") navigate('/account')
 
     return(
         <div className={styles['body']}>
-            <h2>Войдите в свой аккаунт Anixart</h2>
+            <h2>{t('auth.loginTitle')}</h2>
             <div className={styles['form-container']}>
                 <input type="text"
                        name="username"
-                       placeholder="Юзернейм"
+                       placeholder={t('auth.username')}
                        onChange={e => setUsername(e.target.value)}/>
                        
                 <input type="password"
                        name="password" 
-                       placeholder="Пароль"
+                       placeholder={t('auth.password')}
                        onChange={e => setPassword(e.target.value)}/>
                        
                 <div className={styles['actions']}>
-                    <Link to='/account/recover'>Забыли пароль?</Link>
-                    <Link to='/account/create'>Зарегистрироваться</Link>
+                    <Link to='/account/recover'>{t('auth.forgotPassword')}</Link>
+                    <Link to='/account/create'>{t('auth.register')}</Link>
                 </div>
                 
-                <button onClick={() => {handleLogin(username, password, setUserToken, setUserId)}}>Войти</button>
+                <button onClick={() => {handleLogin(username, password, setUserToken, setUserId)}}>{t('auth.login')}</button>
             </div>
         </div>
     )

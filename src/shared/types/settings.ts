@@ -4,6 +4,7 @@ export interface AppSettings {
         autoplay: boolean;
         volume: number;
         qualityUpgrade: boolean;
+        qualityUpgradeMode: 'weak' | 'medium' | 'strong';
         showSkipOpeningButton: boolean;
         skipOpeningValue: number; // in seconds
     },
@@ -28,6 +29,7 @@ export const defaultAppSettings:AppSettings = {
         autoplay: false,
         volume: 60,
         qualityUpgrade: false,
+        qualityUpgradeMode: 'medium',
         showSkipOpeningButton: true,
         skipOpeningValue: 84,
     },

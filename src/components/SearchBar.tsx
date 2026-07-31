@@ -9,6 +9,7 @@ import AnimeCard from "./AnimeCard";
 import AnimeCardHorizontal from "./AnimeCardHorizontal";
 import SearchIcon from "../assets/icons/search.svg";
 import RemoteImage from './RemoteImage';
+import { useTranslation } from '../shared/useTranslation';
 
 interface ReleaseSearchResponse{
   code: number;
@@ -46,6 +47,7 @@ export default function SearchButton(){
     const [searchResults, setSearchResults] = useState<SearchResults>();
     const [isLoading, setIsLoading] = useState(false);
     const {settings} = useSettings()
+    const { t } = useTranslation();
     const { searchScope } = useSearchScope();
     const { userToken } = useUser();
     const [isSearchOpen, setIsSearchOpen] = useState(false);
@@ -110,19 +112,19 @@ export default function SearchButton(){
                         setQuery(value);
                         setIsSearchOpen(Boolean(value.trim()));
                     }}
-                    placeholder={isProfileSearch ? 'Поиск пользователей' : 'Поиск аниме'}
-                    aria-label={isProfileSearch ? 'Поиск пользователей' : 'Поиск аниме'}
+                    placeholder={isProfileSearch ? t('search.users') : t('search.anime')}
+                    aria-label={isProfileSearch ? t('search.users') : t('search.anime')}
                 />
                 {query && <button
                     type="button"
                     className={styles['clear-button']}
                     onClick={clearSearch}
-                    aria-label="Очистить поиск"
+                    aria-label={t('search.clear')}
                 >×</button>}
             </label>
             {isSearchOpen && <div className={styles['search-overlay']}>
                 <div className={styles['search-content']}>
-                    {isLoading && <p className={styles.message}>Поиск…</p>}
+                    {isLoading && <p className={styles.message}>{t('search.waiting')}</p>}
                     {!isLoading && releaseResults?.related && <button type="button" className={styles['related-release']} onClick={() => navigate(`/franchise/${releaseResults.related?.id || 0}`)}>
                         <span className={styles['related-posters']} aria-hidden="true">
                             {releaseResults.related.images.slice(0, 3).map((image) => (
@@ -131,7 +133,7 @@ export default function SearchButton(){
                         </span>
                         <span className={styles['related-info']}>
                             <strong>{releaseResults.related.name_ru}</strong>
-                            <small>{releaseResults.related.release_count} релизов в франшизе</small>
+                            <small>{releaseResults.related.release_count} {t('search.franchiseReleases')}</small>
                             <small>{releaseResults.related.description}</small>
                         </span>
                     </button>}
@@ -160,7 +162,7 @@ export default function SearchButton(){
                             </button>
                         ))}
                     </div>}
-                    {!isLoading && searchResults && (isProfileSearch ? profileResults.length === 0 : releaseResults?.releases.length === 0) && <p className={styles.message}>Ничего не найдено.</p>}
+                    {!isLoading && searchResults && (isProfileSearch ? profileResults.length === 0 : releaseResults?.releases.length === 0) && <p className={styles.message}>{t('search.empty')}</p>}
                 </div>
             </div>}
         </div>

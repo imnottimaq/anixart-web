@@ -3,12 +3,14 @@ import { useState, useEffect } from 'react';
 import { Modal } from '../modals/ModalTemplate';
 import SearchBar from '../components/SearchBar'
 import { useSettings } from '../shared/contexts/settingsContext';
+import { useTranslation } from '../shared/useTranslation';
 import SunIcon from '../assets/icons/sun.svg';
 import MoonIcon from '../assets/icons/moon.svg';
 import styles from './RootLayout.module.css';
 
 export default function RootLayout() {
   const { settings, setSettings } = useSettings();
+  const { t } = useTranslation();
   const { theme } = settings.appearance;
   const [isFirstTimeOpening, setIsFirstTimeOpeningState] = useState<boolean>(() => localStorage.getItem('onboarded') != "true")
 
@@ -29,11 +31,11 @@ export default function RootLayout() {
               <p>Anixart</p>
             </Link>  
           <nav className={styles.navigation}>
-            <Link to="/" className={styles['nav-link']}>Главная</Link>
-            <Link to="/overview" className={styles['nav-link']}>Обзор</Link>
-            <Link to="/favorites" className={styles['nav-link']}>Избранное</Link>
-            <Link to="/account" className={styles['nav-link']}>Аккаунт</Link>
-            <Link to="/random" className={styles['nav-link']}>Случайное аниме</Link>
+            <Link to="/" className={styles['nav-link']}>{t('nav.home')}</Link>
+            <Link to="/overview" className={styles['nav-link']}>{t('nav.overview')}</Link>
+            <Link to="/favorites" className={styles['nav-link']}>{t('nav.favorites')}</Link>
+            <Link to="/account" className={styles['nav-link']}>{t('nav.account')}</Link>
+            <Link to="/random" className={styles['nav-link']}>{t('nav.random')}</Link>
           </nav>
           <SearchBar />
           <button
@@ -46,8 +48,8 @@ export default function RootLayout() {
                 theme: previous.appearance.theme === 'dark' ? 'light' : 'dark',
               },
             }))}
-            aria-label={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}
-            title={theme === 'dark' ? 'Включить светлую тему' : 'Включить тёмную тему'}
+            aria-label={t('settings.darkTheme')}
+            title={t('settings.darkTheme')}
           >
             <img src={theme === 'dark' ? SunIcon : MoonIcon} alt="" />
           </button>
@@ -59,18 +61,16 @@ export default function RootLayout() {
           isOpen = {isFirstTimeOpening}
           onClose={() => closeOnboarding}
           showCloseButton={false}
-          title='Предупреждение'
-          text=' Это неофициальный клиент, не связанный с разработчиками Anixart. Сайт предоставляется «как есть»:
-          некоторые функции могут отсутствовать, а дальнейшая поддержка и разработка не гарантируются. 
-          Используя сайт, вы принимаете эти условия и самостоятельно несёте ответственность за безопасность своего аккаунта.'
+          title={t('modal.warning')}
+          text={t('modal.unofficialClientNotice')}
           actions={[
             {
-              label: 'Закрыть сайт',
+              label: t('modal.closeSite'),
               variant: 'secondary',
               onClick: () => window.location.href = 'https://google.com'
             },
             {
-              label: 'Продолжить',
+              label: t('misc.continue'),
               variant: 'primary',
               onClick: closeOnboarding
             }

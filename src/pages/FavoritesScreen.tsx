@@ -8,17 +8,12 @@ import { useUser } from '../shared/contexts/userContext';
 import { useSettings } from '../shared/contexts/settingsContext';
 import { useSearchScope, type SearchScope } from '../shared/contexts/searchContext';
 import styles from './LatestReleasesScreen.module.css';
+import { useTranslation } from '../shared/useTranslation';
 
 type ProfilePage = 'favorites' | 'history' | 'watching' | 'planned' | 'completed' | 'onHold' | 'dropped';
 
-const PAGE_ITEMS: { page: ProfilePage; buttonText: string }[] = [
-    { page: 'favorites', buttonText: 'Избранное' },
-    { page: 'history', buttonText: 'История' },
-    { page: 'watching', buttonText: 'Смотрю' },
-    { page: 'planned', buttonText: 'В планах' },
-    { page: 'completed', buttonText: 'Просмотрено' },
-    { page: 'onHold', buttonText: 'Отложено' },
-    { page: 'dropped', buttonText: 'Брошено' },
+const PAGE_ITEMS: { page: ProfilePage; buttonText: 'nav.favorites' | 'home.history' | 'status.watching' | 'status.planned' | 'status.watched' | 'status.hold_on' | 'status.dropped' }[] = [
+    { page: 'favorites', buttonText: 'nav.favorites' }, { page: 'history', buttonText: 'home.history' }, { page: 'watching', buttonText: 'status.watching' }, { page: 'planned', buttonText: 'status.planned' }, { page: 'completed', buttonText: 'status.watched' }, { page: 'onHold', buttonText: 'status.hold_on' }, { page: 'dropped', buttonText: 'status.dropped' },
 ];
 
 const PROFILE_LIST_IDS: Record<Exclude<ProfilePage, 'favorites' | 'history'>, number> = {
@@ -63,6 +58,7 @@ function createTabs(): Record<ProfilePage, TabData> {
 export default function FavoritesScreen() {
     const { userToken } = useUser();
     const { settings } = useSettings();
+    const { t } = useTranslation();
     const { setSearchScope } = useSearchScope();
     const triggerRef = useRef<HTMLDivElement | null>(null);
     const loadingRequestsRef = useRef(new Set<string>());
@@ -175,7 +171,7 @@ export default function FavoritesScreen() {
                         className={activePage === page ? styles.active : ''}
                         onClick={() => setActivePage(page)}
                     >
-                        {buttonText}
+                        {t(buttonText)}
                     </button>
                 ))}
             </div>
@@ -191,11 +187,11 @@ export default function FavoritesScreen() {
                             : <AnimeCardHorizontal key={anime.id} anime={anime} />
                     ))}
                     <div ref={triggerRef} style={{ height: '20px', background: 'transparent' }} />
-                    {isLoadingMore && <div className={styles['loading-more']} role="status">Загружаем ещё релизы…</div>}
+                    {isLoadingMore && <div className={styles['loading-more']} role="status">{t('misc.loading')}</div>}
                 </div>
             </div>
 
-            {isInitialLoading && <div className={styles['loading-overlay']} role="status" aria-label="Загрузка списка" />}
+            {isInitialLoading && <div className={styles['loading-overlay']} role="status" aria-label={t('misc.loading')} />}
         </div>
     );
 }

@@ -38,6 +38,8 @@ export default function ReleaseScreen(){
 
     const [animeData, setAnimeData] = useState<Anime>(partialData);
     const [screenshots, setScreenshots] = useState<string[]>([]);
+    const [loadedPoster, setLoadedPoster] = useState<string | null>(null);
+    const [loadedScreenshots, setLoadedScreenshots] = useState<Record<string, boolean>>({});
     const [isDubScreenOpen, setIsDubScreenOpen] = useState(false);
     const requestKey = `${id ?? ''}:${userToken}`;
     const [loadedRequestKey, setLoadedRequestKey] = useState<string | null>(null);
@@ -146,7 +148,14 @@ export default function ReleaseScreen(){
     return(
         <div className={styles['body']}>
             <div className={styles['side-panel']}>
-                <RemoteImage src={animeData.image} className={styles.poster}/>
+                <div className={`${styles['poster-wrapper']} ${loadedPoster === animeData.image ? styles['media-loaded'] : styles['media-loading']}`}>
+                    <RemoteImage
+                        src={animeData.image}
+                        className={styles.poster}
+                        onLoad={() => setLoadedPoster(animeData.image)}
+                        onError={() => setLoadedPoster(animeData.image)}
+                    />
+                </div>
                 <div className={`${styles['action-panel']}`}>
                     <select id="watchlist-select" className={`${styles['list-select']} ${styles['action-btn']} ${styles[`status-${animeData?.profile_list_status ?? 0}`]}`} onChange={e => {
                             const newStatus = +e.target.value
@@ -197,7 +206,7 @@ export default function ReleaseScreen(){
                     <div className={styles['grade']}>
                         <p>Оценки</p>
                         <h1>{(animeData.grade ?? 0).toFixed(2)}</h1>
-                        <p>{animeData.vote_count ?? 0} голосов</p>
+                        <p>{animeData.vote_count ?? 0} {plural(animeData.vote_count ?? 0, 'голос', 'голоса', 'голосов')}</p>
                     </div>
                     <div className={styles['grade-bars']}>
                     {[5,4,3,2,1].map(grade => {
@@ -264,12 +273,16 @@ export default function ReleaseScreen(){
                                         } as React.CSSProperties}
                                     >
                                         {screenshots.map((url, index) => (
-                                            <SwiperSlide key={index}>
-                                                <RemoteImage
-                                                    src={url}
-                                                    alt={`Скриншот ${index + 1}`} 
-                                                    className={styles['screenshot-img']}
-                                                />
+                                            <SwiperSlide key={url}>
+                                                <div className={`${styles['screenshot-wrapper']} ${loadedScreenshots[url] ? styles['media-loaded'] : styles['media-loading']}`}>
+                                                    <RemoteImage
+                                                        src={url}
+                                                        alt={`Скриншот ${index + 1}`}
+                                                        className={styles['screenshot-img']}
+                                                        onLoad={() => setLoadedScreenshots(previous => ({ ...previous, [url]: true }))}
+                                                        onError={() => setLoadedScreenshots(previous => ({ ...previous, [url]: true }))}
+                                                    />
+                                                </div>
                                             </SwiperSlide>
                                         ))}
                                     </Swiper>
@@ -379,7 +392,7 @@ export default function ReleaseScreen(){
                 isOpen={isDubScreenOpen}
                 onClose={() => setIsDubScreenOpen(false)}
                 releaseId={animeData?.id}
-                onEpisodeSelect={(sources, episode) => {
+                onEpisodeSelect={(sources, episode, episodes, sourceId) => {
                     setIsDubScreenOpen(false)
                     setPlayerSession({
                         sources,
@@ -387,6 +400,8 @@ export default function ReleaseScreen(){
                         animeName: settings.appearance.language === 'english' ? animeData.title_original : animeData.title_ru,
                         episodeNumber: episode.position,
                         episodeName: episode.name,
+                        episodes,
+                        sourceId,
                     });
                     navigate('./watch');
                 }}
@@ -462,4 +477,14 @@ async function EditComment(commentId: number, message: string, spoiler: boolean,
     if (data.code !== undefined && data.code !== 0) {
         throw new Error(`Не удалось отредактировать комментарий: code ${data.code}`);
     }
+}
+
+function plural(value: number, one: string, few: string, many: string) {
+    const lastTwoDigits = Math.abs(value) % 100;
+    const lastDigit = lastTwoDigits % 10;
+
+    if (lastTwoDigits >= 11 && lastTwoDigits <= 14) return many;
+    if (lastDigit === 1) return one;
+    if (lastDigit >= 2 && lastDigit <= 4) return few;
+    return many;
 }

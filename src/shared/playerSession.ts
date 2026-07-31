@@ -8,6 +8,14 @@ export interface PlayerSession {
     animeName: string;
     episodeNumber?: number;
     episodeName?: string;
+    episodes?: PlayerSessionEpisode[];
+    sourceId?: number;
+}
+
+export interface PlayerSessionEpisode {
+    name: string;
+    position: number;
+    url: string;
 }
 
 export function getPlayerSession(): PlayerSession | null {

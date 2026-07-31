@@ -67,12 +67,23 @@
     padding-left: 0;
 }
 
-.poster {
-    width: 85%;
+.poster-wrapper {
+    position: relative;
+    width: min(28vw, 43vh);
+    max-width: 100%;
     aspect-ratio: 430 / 606;
+    overflow: hidden;
     border-radius: 0.5rem;
+    background: color-mix(in srgb, var(--text-color) 10%, var(--background-color));
+}
+
+.poster {
+    display: block;
+    width: 100%;
+    height: 100%;
     object-position: center;
     object-fit: cover;
+    transition: opacity 180ms ease;
 }
 
 .side-panel {
@@ -241,6 +252,41 @@
     object-fit: contain;
     border-radius: 12px;
     background-color: #000;
+    transition: opacity 180ms ease;
+}
+
+.screenshot-wrapper {
+    position: relative;
+    overflow: hidden;
+    aspect-ratio: 16 / 9;
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--text-color) 10%, var(--background-color));
+}
+
+.screenshot-wrapper .screenshot-img {
+    height: 100%;
+}
+
+.media-loading::before {
+    content: '';
+    position: absolute;
+    z-index: 1;
+    inset: 0;
+    background: linear-gradient(105deg, color-mix(in srgb, var(--text-color) 6%, var(--background-color)) 24%, color-mix(in srgb, var(--text-color) 15%, var(--background-color)) 42%, color-mix(in srgb, var(--text-color) 6%, var(--background-color)) 60%);
+    background-size: 220% 100%;
+    animation: media-shimmer 1.25s ease-in-out infinite;
+}
+
+.media-loading img { opacity: 0; }
+.media-loaded img { opacity: 1; }
+
+@keyframes media-shimmer {
+    from { background-position: 100% 0; }
+    to { background-position: -120% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .media-loading::before { animation: none; }
 }
 
 .watch-btn {

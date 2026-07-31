@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useState } from 'react';
 import styles from "./AnimeCardHorizontal.module.css"
 import { type Anime } from "../shared/types/api";
 import { profileListStatus } from "../shared/profileListStatus"
@@ -9,10 +10,19 @@ export interface AnimeCardProps { anime: Anime; }
 
 export default function AnimeCardHorizontal({ anime }: AnimeCardProps) {
   const listStatus = profileListStatus[anime.profile_list_status as 0 | 1 | 2 | 3 | 4 | 5];
+  const [loadedImage, setLoadedImage] = useState<string | null>(null);
+  const isImageLoaded = loadedImage === anime.image;
+
   return (
     <Link to={`/anime/${anime.id}`} state={{partialAnime: anime}} key={anime.id} className={styles.card}>
-      <div className={styles.poster}>
-        <RemoteImage src={anime.image} alt={anime.title_ru} loading='lazy' />
+      <div className={`${styles.poster} ${isImageLoaded ? styles['poster-loaded'] : styles['poster-loading']}`}>
+        <RemoteImage
+          src={anime.image}
+          alt={anime.title_ru}
+          loading="lazy"
+          onLoad={() => setLoadedImage(anime.image)}
+          onError={() => setLoadedImage(anime.image)}
+        />
         {listStatus && <span className={`${styles['list-status']} ${styles[`status-${listStatus.color}`]}`}>{listStatus.label}</span>}
       </div>
       <div className={styles.info}>

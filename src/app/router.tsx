@@ -10,6 +10,7 @@ import LoginScreen from '../pages/LoginScreen';
 import RecoverScreen from '../pages/RecoverScreen';
 import NewAccountScreen from '../pages/NewAccountScreen';
 import RandomAnime from '../pages/RandomAnime';
+import SettingsScreen from '../pages/SettingsScreen';
 
 const basename = import.meta.env.BASE_URL === '/'
     ? undefined
@@ -21,6 +22,7 @@ export const router = createBrowserRouter([
     element: <RootLayout />,
     children: [
     { index: true, element: <LatestReleasesScreen /> },
+    { path: 'overview', element: <LatestReleasesScreen /> },
     { path: 'favorites', element: <FavoritesScreen /> },
     { path: 'anime/:id', element: <ReleaseScreen /> },
     { path: 'anime/:id/watch', element: <PlayerScreen /> },
@@ -30,6 +32,7 @@ export const router = createBrowserRouter([
     { path: 'account/recover', element: <RecoverScreen /> },
     { path: 'account/create', element: <NewAccountScreen /> },
     { path: 'random', element: <RandomAnime /> },
+    { path: 'settings', element: <SettingsScreen />}
     ],
 },
 ], { basename });

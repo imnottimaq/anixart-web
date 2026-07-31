@@ -2,10 +2,13 @@ import { useCallback, useEffect, useState } from 'react';
 import styles from './DubSelectModal.module.css'
 import { extractVideoLinks } from '../utils/LinkParser';
 import type { VideoSources } from '../shared/types/video';
+import type { PlayerSessionEpisode } from '../shared/playerSession';
 import CloseIcon from '../assets/icons/xmark.svg'
 import EyeIcon from '../assets/icons/eye.svg'
 import { clearWatchProgress, getWatchProgress } from '../shared/watchProgress';
 import { Modal } from './ModalTemplate';
+import { useSettings } from '../shared/contexts/settingsContext';
+import { useTranslation } from '../shared/useTranslation';
 
 
 interface DubSelectModalProps {
@@ -13,7 +16,7 @@ interface DubSelectModalProps {
   onClose: () => void;
   releaseId: number;
   token: string;
-  onEpisodeSelect: (sources: VideoSources, episode: Pick<Episode, 'name' | 'position'>) => void;
+  onEpisodeSelect: (sources: VideoSources, episode: PlayerSessionEpisode, episodes: PlayerSessionEpisode[], sourceId: number) => void;
 }
 
 interface Dub {
@@ -44,6 +47,8 @@ function formatProgressTime(seconds: number) {
 }
 
 export default function DubSelectModal({ isOpen, onClose, releaseId, token, onEpisodeSelect }: DubSelectModalProps){
+    const { settings, setSettings } = useSettings();
+    const { t } = useTranslation();
     const [dubsData, setDubsData] = useState<Dub[]>([]);
     const [sourcesData, setSourcesData] = useState<Source[]>([]);
     const [episodesData, setEpisodesData] = useState<Episode[]>([]);
@@ -63,33 +68,39 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, onEp
     const loadSources = useCallback((relId: number, dubId: number) => {
         GetSources(relId, dubId)
             .then(data => {
-                const sources = data.sources || [];
+                const sources: Source[] = data.sources || [];
                 setSourcesData(sources);
                 setEpisodesData([]);
 
                 if (sources.length > 0) {
-                    const firstSourceId = sources[0].id;
-                    setSelectedSource(firstSourceId);
-                    loadEpisodes(relId, dubId, firstSourceId,token);
+                    const rememberedSource = settings.content.rememberSource
+                        ? sources.find(source => source.id === settings.content.rememberedSourceId)
+                        : undefined;
+                    const sourceId = rememberedSource?.id ?? sources[0].id;
+                    setSelectedSource(sourceId);
+                    loadEpisodes(relId, dubId, sourceId, token);
                 }
             })
             .catch(err => console.error(err));
-    },[])
+    }, [loadEpisodes, settings.content.rememberSource, settings.content.rememberedSourceId, token])
     
     useEffect(() => {
         GetDubs(releaseId)
             .then(data => {
-                const dubs = data.types || [];
+                const dubs: Dub[] = data.types || [];
                 setDubsData(dubs);
                 
                 if (dubs.length > 0) {
-                    const firstDubId = dubs[0].id;
-                    setSelectedDub(firstDubId);
-                    loadSources(releaseId, firstDubId);
+                    const rememberedDub = settings.content.rememberDub
+                        ? dubs.find(dub => dub.id === settings.content.rememberedDubId)
+                        : undefined;
+                    const dubId = rememberedDub?.id ?? dubs[0].id;
+                    setSelectedDub(dubId);
+                    loadSources(releaseId, dubId);
                 }
             })
             .catch(err => console.error(err))
-    }, [releaseId])
+    }, [loadSources, releaseId, settings.content.rememberDub, settings.content.rememberedDubId])
 
     if (!isOpen) return null;
 
@@ -105,12 +116,19 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, onEp
         > 
             {close => (<>
                 <div className={styles['top-row']}>
-                    <h3>Выбор озвучки</h3>
+                    <h3>{t('dubSelect.title')}</h3>
                     <div className={styles['top-row-right']}>
-                        <select style={{marginRight:'10px'}}
+                        <select value={selectedDub} style={{marginRight:'10px'}}
                         onChange={e => {
-                            setSelectedDub(+e.target.value)
-                            loadSources(releaseId, +e.target.value)
+                            const dubId = +e.target.value;
+                            setSelectedDub(dubId);
+                            if (settings.content.rememberDub) {
+                                setSettings(previous => ({
+                                    ...previous,
+                                    content: { ...previous.content, rememberedDubId: dubId },
+                                }));
+                            }
+                            loadSources(releaseId, dubId)
                         }}>
                             {dubsData.map((dub) => {
                                 return <option key={`dub-${dub.id}`} value={dub.id}>{dub.name} {dub.episodes_count} сер. | {dub.view_count} прос.</option>
@@ -118,8 +136,15 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, onEp
                         </select>
                         {sourcesData.length > 0 && (
                             <select onChange={e => {
-                            setSelectedSource(+e.target.value)
-                            loadEpisodes(releaseId, selectedDub, +e.target.value, token)}}
+                            const sourceId = +e.target.value;
+                            setSelectedSource(sourceId);
+                            if (settings.content.rememberSource) {
+                                setSettings(previous => ({
+                                    ...previous,
+                                    content: { ...previous.content, rememberedSourceId: sourceId },
+                                }));
+                            }
+                            loadEpisodes(releaseId, selectedDub, sourceId, token)}}
                             disabled={sourcesData.length < 2}
                             style={{marginRight:'10px'}}
                             value={selectedSource}>
@@ -128,7 +153,7 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, onEp
                                 })}
                             </select>
                         )}
-                        <img src={CloseIcon} alt="Закрыть" onClick={close} />
+                        <img src={CloseIcon} alt={t('misc.close')} onClick={close} />
                     </div>
                 </div>
                 <div className={styles.episodes}>
@@ -141,15 +166,20 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, onEp
                                     if (sources) onEpisodeSelect(sources, {
                                         name: episode.name,
                                         position: episode.position,
-                                    });
+                                        url: episode.url,
+                                    }, episodesData.map(({ name, position, url }) => ({
+                                        name,
+                                        position,
+                                        url,
+                                    })), selectedSource);
                             }}>
                                 <h3>{episode.name}</h3>
                                 <div className={styles['episode-meta']}>
                                     {episodeProgress[String(episode.position)] === -1 ? (
-                                        <span className={styles['episode-progress']}>Просмотрено целиком</span>
+                                        <span className={styles['episode-progress']}>{t('dubSelect.watchedFull')}</span>
                                     ) : typeof episodeProgress[String(episode.position)] === 'number' && episodeProgress[String(episode.position)] > 0 ? (
                                         <span className={styles['episode-progress']}>
-                                            Просмотрено до {formatProgressTime(episodeProgress[String(episode.position)])}
+                                            {t('dubSelect.watchedUntil')} {formatProgressTime(episodeProgress[String(episode.position)])}
                                         </span>
                                     ) : null}
                                     {episode.is_watched && <button className={styles.seen}
@@ -157,7 +187,7 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, onEp
                                             event.stopPropagation()
                                             setEpisodeToUnwatch(episode);
                                            }}>
-                                        <img src={EyeIcon} alt="Уже просмотрено" /></button>}
+                                        <img src={EyeIcon} alt={t('dubSelect.watched')} /></button>}
                                 </div>
                         </button>
                     ))}
@@ -167,16 +197,16 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, onEp
 
         <Modal isOpen={episodeToUnwatch !== null}
             onClose={() => setEpisodeToUnwatch(null)}
-            title='Внимание'
-            text={`Убрать отметку «Просмотрено» у серии «${episodeToUnwatch?.name ?? ''}»?`}
+            title={t('dubSelect.unwatchTitle')}
+            text={`${t('dubSelect.unwatchText')} «${episodeToUnwatch?.name ?? ''}»?`}
             actions={[
                 {
-                    label: 'Отмена',
+                    label: t('misc.cancel'),
                     variant: 'secondary',
                     onClick: () => setEpisodeToUnwatch(null)
                 },
                 {
-                    label: 'Убрать',
+                    label: t('misc.remove'),
                     variant: 'primary',
                     onClick: async () => {
                         if (!episodeToUnwatch) return;

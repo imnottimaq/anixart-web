@@ -15,6 +15,77 @@
     animation: player-in 220ms cubic-bezier(.2, .8, .2, 1);
 }
 
+.player:fullscreen {
+    width: 100%;
+    height: 100%;
+}
+
+.resume-prompt {
+    position: absolute;
+    inset: 0;
+    z-index: 4;
+    display: grid;
+    place-items: center;
+    padding: 20px;
+    background: rgb(0 0 0 / 42%);
+    animation: resume-prompt-in 160ms ease-out both;
+}
+
+.resume-prompt-card {
+    width: min(390px, 100%);
+    padding: 22px;
+    border: 1px solid rgb(255 255 255 / 15%);
+    border-radius: 16px;
+    box-sizing: border-box;
+    color: #fff;
+    background: rgb(20 20 20 / 96%);
+    box-shadow: 0 20px 60px rgb(0 0 0 / 52%);
+    backdrop-filter: blur(16px);
+}
+
+.resume-prompt-card h2 {
+    margin: 0;
+    font-size: 20px;
+}
+
+.resume-prompt-card p {
+    margin: 8px 0 0;
+    color: rgb(255 255 255 / 68%);
+}
+
+.resume-prompt-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.resume-prompt-actions button {
+    min-height: 38px;
+    padding: 8px 13px;
+    border-radius: 9px;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 600;
+}
+
+.resume-secondary-button {
+    border: 1px solid rgb(255 255 255 / 22%);
+    color: #fff;
+    background: rgb(255 255 255 / 8%);
+}
+
+.resume-primary-button {
+    border: 1px solid var(--accent-color, #ff6060);
+    color: #fff;
+    background: var(--accent-color, #ff6060);
+}
+
+@keyframes resume-prompt-in {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
 .player-controls {
     position: absolute;
     inset: 0;
@@ -23,6 +94,13 @@
     flex-direction: column;
     color: #fff;
     background: linear-gradient(180deg, rgb(0 0 0 / 60%) 0%, transparent 28%, transparent 68%, rgb(0 0 0 / 70%) 100%);
+    opacity: 1;
+    transition: opacity 220ms ease;
+}
+
+.player-controls-hidden {
+    pointer-events: none;
+    opacity: 0;
 }
 
 .play-button {
@@ -52,6 +130,11 @@
     background-color: rgb(0 0 0 / 82%);
     cursor: pointer;
     transition: transform 160ms ease, background-color 160ms ease;
+}
+
+.next-prev-buttons:disabled {
+    cursor: not-allowed;
+    opacity: .35;
 }
 
 .top-bar {
@@ -161,6 +244,104 @@
     cursor: pointer;
     transition: transform 160ms ease, background-color 160ms ease;
 }
+
+.action-btn-active {
+    background-color: rgb(255 255 255 / 17%);
+}
+
+.player-settings-wrap {
+    position: relative;
+}
+
+.player-settings-menu {
+    position: absolute;
+    right: 0;
+    bottom: calc(100% + 12px);
+    z-index: 3;
+    width: min(390px, calc(100vw - 32px));
+    padding: 14px;
+    border: 1px solid rgb(255 255 255 / 13%);
+    border-radius: 14px;
+    box-sizing: border-box;
+    color: #fff;
+    background: rgb(15 15 15 / 96%);
+    box-shadow: 0 16px 48px rgb(0 0 0 / 42%);
+    backdrop-filter: blur(14px);
+    animation: settings-menu-in 160ms ease-out both;
+}
+
+.player-settings-menu section + section {
+    margin-top: 14px;
+    padding-top: 14px;
+    border-top: 1px solid rgb(255 255 255 / 10%);
+}
+
+.settings-label {
+    display: block;
+    margin-bottom: 8px;
+    color: rgb(255 255 255 / 66%);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: .03em;
+    text-transform: uppercase;
+}
+
+.settings-options {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.settings-options button {
+    min-width: 48px;
+    min-height: 32px;
+    padding: 6px 9px;
+    border: 1px solid rgb(255 255 255 / 13%);
+    border-radius: 8px;
+    cursor: pointer;
+    color: rgb(255 255 255 / 82%);
+    background: rgb(255 255 255 / 7%);
+    font: inherit;
+    font-size: 13px;
+    transition: background .14s ease, border-color .14s ease;
+}
+
+.settings-options button:hover {
+    border-color: rgb(255 255 255 / 30%);
+    background: rgb(255 255 255 / 13%);
+}
+
+.settings-options button.selected {
+    border-color: var(--accent-color, #ff6060);
+    color: #fff;
+    background: color-mix(in srgb, var(--accent-color, #ff6060) 72%, #000);
+}
+
+.settings-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+}
+
+.settings-toggle-row span { display: flex; flex-direction: column; gap: 2px; }
+.settings-toggle-row strong { font-size: 14px; }
+.settings-toggle-row small { color: rgb(255 255 255 / 55%); font-size: 12px; }
+
+.player-toggle {
+    position: relative;
+    width: 42px;
+    height: 24px;
+    flex: 0 0 42px;
+    cursor: pointer;
+}
+
+.player-toggle input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.player-toggle i { position: absolute; inset: 0; border-radius: 999px; background: rgb(255 255 255 / 20%); transition: background .16s ease; }
+.player-toggle i::after { content: ''; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .16s ease; }
+.player-toggle input:checked + i { background: var(--accent-color, #ff6060); }
+.player-toggle input:checked + i::after { transform: translateX(18px); }
+.player-toggle input:focus-visible + i { outline: 2px solid #fff; outline-offset: 2px; }
 
 .mute-button {
     flex: 0 0 auto;
@@ -295,6 +476,11 @@
     to { opacity: 1; transform: translateX(0); }
 }
 
+@keyframes settings-menu-in {
+    from { opacity: 0; transform: translateY(6px) scale(.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
 @media (prefers-reduced-motion: reduce) {
     .overlay,
     .player,
@@ -326,4 +512,33 @@
     height: 100%;
     max-height: none;
     object-fit: contain;
+}
+
+.video-stage {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center;
+}
+
+.video-frame {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+}
+
+.upscale-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 180ms ease;
+}
+
+.upscale-canvas-visible {
+    opacity: 1;
 }
