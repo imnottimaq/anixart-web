@@ -2,15 +2,14 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { useUser } from '../shared/contexts/userContext';
 import { createWatchRoom, getPublicWatchRooms, type RoomVisibility, type WatchRoomState, WatchRoomSocket } from '../shared/watchRoom';
+import type { Anime } from '../shared/types/api';
+import { getRoomParticipant } from '../shared/roomParticipant';
+import RemoteImage from '../components/RemoteImage';
 import styles from './WatchRoomScreen.module.css';
 
 export default function WatchRoomScreen() {
     const { roomId } = useParams<{ roomId: string }>();
     return roomId ? <ConnectedRoom roomId={roomId} /> : <WatchRoomLobby />;
-}
-
-function participantFromUser(userId: number) {
-    return { profileId: userId, login: `User ${userId}` };
 }
 
 function WatchRoomLobby() {
@@ -31,13 +30,13 @@ function WatchRoomLobby() {
     const create = async () => {
         if (userId <= 0) return setMessage('Войдите в аккаунт, чтобы создать комнату');
         try {
-            const room = await createWatchRoom({ title, visibility, host: participantFromUser(userId) });
+            const room = await createWatchRoom({ title, visibility, host: getRoomParticipant(userId) });
             navigate(`/watch/${room.roomId}`);
         } catch (error) { setMessage(error instanceof Error ? error.message : 'Не удалось создать комнату'); }
     };
 
     return <section className={styles.page}>
-        <div className={styles.hero}><h1>Совместный просмотр</h1><p>Создай комнату, выбери серию и смотри синхронно с друзьями.</p></div>
+        <div className={styles.hero}><h1>Совместный просмотр <span className={styles.beta}>Бета</span></h1><p>Создай комнату, выбери серию и смотри синхронно с друзьями.</p></div>
         <div className={styles.grid}>
             <form className={styles.card} onSubmit={event => { event.preventDefault(); void create(); }}>
                 <h2>Новая комната</h2>
@@ -54,28 +53,76 @@ function WatchRoomLobby() {
 }
 
 function ConnectedRoom({ roomId }: { roomId: string }) {
-    const { userId } = useUser();
+    const navigate = useNavigate();
+    const { userId, userToken } = useUser();
     const socketRef = useRef(new WatchRoomSocket());
     const [room, setRoom] = useState<WatchRoomState | null>(null);
     const [message, setMessage] = useState('Подключаемся к комнате…');
-    const [releaseId, setReleaseId] = useState('');
+    const [releaseQuery, setReleaseQuery] = useState('');
+    const [releaseResults, setReleaseResults] = useState<Anime[]>([]);
+    const [isSearching, setIsSearching] = useState(false);
     const isController = useMemo(() => Boolean(room?.participants.find(item => item.profileId === userId)?.canControl), [room, userId]);
 
     useEffect(() => {
         if (userId <= 0) { setMessage('Войдите в аккаунт, чтобы подключиться к комнате'); return; }
-        socketRef.current.connect(roomId, participantFromUser(userId), state => { setRoom(state); setMessage(''); }, setMessage);
+        socketRef.current.connect(roomId, getRoomParticipant(userId), state => { setRoom(state); setMessage(''); }, setMessage);
         const interval = window.setInterval(() => socketRef.current.send({ type: 'sync_request' }), 15_000);
         return () => { window.clearInterval(interval); socketRef.current.disconnect(); };
     }, [roomId, userId]);
+
+    useEffect(() => {
+        if (!room?.media) return;
+        navigate(roomMediaUrl(roomId, room.media), { replace: true });
+    }, [navigate, room?.media, roomId]);
+
+    useEffect(() => {
+        const query = releaseQuery.trim();
+        if (!isController || room?.media || query.length < 2) {
+            setReleaseResults([]);
+            return;
+        }
+
+        const timeout = window.setTimeout(() => {
+            setIsSearching(true);
+            searchReleases(query, userToken)
+                .then(setReleaseResults)
+                .catch(error => setMessage(error instanceof Error ? error.message : 'Не удалось выполнить поиск'))
+                .finally(() => setIsSearching(false));
+        }, 350);
+        return () => window.clearTimeout(timeout);
+    }, [isController, releaseQuery, room?.media, userToken]);
 
     const grant = (profileId: number, canControl: boolean) => socketRef.current.send({ type: canControl ? 'grant_control' : 'revoke_control', profileId });
     return <section className={styles.page}>
         <Link className={styles.back} to="/watch">← Все комнаты</Link>
         <div className={styles.roomHeader}><div><h1>{room?.title ?? 'Комната'}</h1><p>{room?.visibility === 'private' ? 'Приватная комната' : 'Открытая комната'}</p></div><button type="button" onClick={() => navigator.clipboard.writeText(window.location.href)}>Скопировать ссылку</button></div>
         <div className={styles.grid}>
-            <div className={styles.card}><h2>Сейчас смотрим</h2>{room?.media ? <><strong>{room.media.releaseName}</strong><p>{room.media.episodeName}</p><Link className={styles['open-release']} to={`/anime/${room.media.releaseId}?room=${encodeURIComponent(roomId)}`}>Открыть релиз</Link></> : isController ? <><p className={styles.muted}>Выбери релиз, затем озвучку и серию — плеер сам передаст выбор комнате.</p><div className={styles['release-picker']}><input value={releaseId} inputMode="numeric" placeholder="ID релиза" onChange={event => setReleaseId(event.target.value)} /><Link className={styles['open-release']} to={releaseId.trim() ? `/anime/${releaseId.trim()}?room=${encodeURIComponent(roomId)}` : '#'} onClick={event => { if (!releaseId.trim()) event.preventDefault(); }}>Выбрать релиз</Link></div></> : <p className={styles.muted}>Ожидаем, пока хост выберет серию.</p>}</div>
-            <div className={styles.card}><h2>Участники ({room?.participants.length ?? 0})</h2><div className={styles.participants}>{room?.participants.map(participant => <div key={participant.profileId}><span>{participant.login}{participant.profileId === room.hostId ? ' · хост' : ''}</span>{room?.visibility === 'public' && userId === room.hostId && participant.profileId !== userId && <button type="button" onClick={() => grant(participant.profileId, !participant.canControl)}>{participant.canControl ? 'Забрать управление' : 'Разрешить управление'}</button>}</div>)}</div></div>
+            <div className={styles.card}><h2>Сейчас смотрим</h2>{room?.media ? <><strong>{room.media.releaseName}</strong><p>{room.media.episodeName}</p><Link className={styles['open-release']} to={`/anime/${room.media.releaseId}?room=${encodeURIComponent(roomId)}`}>Открыть релиз</Link></> : isController ? <><p className={styles.muted}>Найди релиз, затем выбери озвучку и серию. После этого выбор автоматически попадёт всем в комнату.</p><label className={styles['search-label']}>Поиск аниме<input autoFocus value={releaseQuery} placeholder="Название аниме" onChange={event => setReleaseQuery(event.target.value)} /></label>{isSearching && <p className={styles.muted}>Ищем…</p>}{releaseQuery.trim().length >= 2 && !isSearching && <div className={styles['release-results']}>{releaseResults.length ? releaseResults.map(release => <Link key={release.id} to={`/anime/${release.id}?room=${encodeURIComponent(roomId)}`} state={{ partialAnime: release }}><strong>{release.title_ru}</strong><span>{release.year || 'Год неизвестен'} · {release.episodes_released || 0} эп.</span></Link>) : <p className={styles.muted}>Ничего не найдено.</p>}</div>}</> : <p className={styles.muted}>Ожидаем, пока хост выберет серию.</p>}</div>
+            <div className={styles.card}><h2>Участники ({room?.participants.length ?? 0})</h2><div className={styles.participants}>{room?.participants.map(participant => <div key={participant.profileId}><span className={styles.participant}><span className={styles.avatar}>{participant.avatar ? <RemoteImage src={participant.avatar} alt="" /> : participant.login[0]?.toUpperCase()}</span><span>{participant.login}{participant.profileId === room.hostId ? ' · хост' : ''}</span></span>{room?.visibility === 'public' && userId === room.hostId && participant.profileId !== userId && <button type="button" onClick={() => grant(participant.profileId, !participant.canControl)}>{participant.canControl ? 'Забрать управление' : 'Разрешить управление'}</button>}</div>)}</div></div>
         </div>
         {message && <p className={styles.error}>{message}</p>}
     </section>;
+}
+
+async function searchReleases(query: string, token: string): Promise<Anime[]> {
+    const tokenQuery = token ? `?token=${encodeURIComponent(token)}` : '';
+    const response = await fetch(`https://api-s.anixsekai.com/search/releases/0${tokenQuery}`, {
+        method: 'POST',
+        headers: { 'Api-Version': 'v2', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query, searchBy: 0 }),
+    });
+    if (!response.ok) throw new Error(`Ошибка поиска: ${response.status}`);
+    const data = await response.json() as { code: number; releases?: Anime[]; content?: Anime[] };
+    if (data.code !== 0) throw new Error(`Ошибка поиска: ${data.code}`);
+    return data.releases ?? data.content ?? [];
+}
+
+function roomMediaUrl(roomId: string, media: NonNullable<WatchRoomState['media']>) {
+    const params = new URLSearchParams({
+        room: roomId,
+        dub: String(media.dubId),
+        source: String(media.sourceId),
+        episode: String(media.episode),
+    });
+    return `/anime/${media.releaseId}?${params.toString()}`;
 }

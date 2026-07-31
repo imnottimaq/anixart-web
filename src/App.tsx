@@ -6,6 +6,7 @@ import { UserContext } from './shared/contexts/userContext';
 import { SettingsContext } from './shared/contexts/settingsContext';
 import { SearchContext, type SearchScope } from './shared/contexts/searchContext';
 import { getStoredUserToken, setStoredUserToken } from './shared/authToken';
+import { saveRoomIdentity } from './shared/roomParticipant';
 
 function App() {
   const [userToken, setUserTokenState] = useState<string>(getStoredUserToken);
@@ -45,11 +46,14 @@ function App() {
         const response = await fetch(`https://api-s.anixsekai.com/profile/info?token=${userToken}`);
         if (!response.ok) return;
 
-        const data: { id?: number | string; profile?: { id?: number | string } } = await response.json();
+        const data: { id?: number | string; profile?: { id?: number | string; login?: string; avatar?: string | null } } = await response.json();
         const profileId = Number(data.profile?.id ?? data.id);
         if (!isCancelled && Number.isFinite(profileId) && profileId > 0) {
           setUserIdState(profileId);
           localStorage.setItem('user_id', String(profileId));
+          if (data.profile?.login) {
+            saveRoomIdentity({ id: profileId, login: data.profile.login, avatar: data.profile.avatar });
+          }
         }
       } catch (error) {
         console.error('Не удалось определить ID текущего профиля:', error);

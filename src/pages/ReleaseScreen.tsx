@@ -26,18 +26,27 @@ import favoriteIcon from '../assets/icons/bookmark.svg'
 import sendIcon from '../assets/icons/send.svg'
 
 import { setPlayerSession } from '../shared/playerSession'
+import { createWatchRoom } from '../shared/watchRoom'
+import { getRoomParticipant } from '../shared/roomParticipant'
 import RecommendedRelease from "../components/RecommendedRelease";
 
 const AGENT_PROXY = "https://kodik-proxy.imnottimaq.workers.dev/agentproxy?url="
 
 export default function ReleaseScreen(){
     const {id} = useParams<{id: string}>();
-    const {userToken, setUserId} = useUser();
+    const {userToken, userId, setUserId} = useUser();
     const {settings} = useSettings();
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
-    const roomId = new URLSearchParams(location.search).get('room');
+    const roomParams = new URLSearchParams(location.search);
+    const roomId = roomParams.get('room');
+    const roomAutoSelect = roomId
+        && Number.isInteger(Number(roomParams.get('dub')))
+        && Number.isInteger(Number(roomParams.get('source')))
+        && Number.isInteger(Number(roomParams.get('episode')))
+        ? { dubId: Number(roomParams.get('dub')), sourceId: Number(roomParams.get('source')), episode: Number(roomParams.get('episode')) }
+        : null;
     const partialData = location.state?.partialAnime || null;
 
     const [animeData, setAnimeData] = useState<Anime>(partialData);
@@ -59,6 +68,24 @@ export default function ReleaseScreen(){
 
     const isReleaseLoading = loadedRequestKey !== requestKey;
     const isCommentTooShort = commentText.trim().length < 5;
+
+    const createWatchRoomForRelease = async () => {
+        if (userId <= 0) {
+            alert('Войдите в аккаунт, чтобы создать комнату');
+            return;
+        }
+        try {
+            const room = await createWatchRoom({
+                title: `Просмотр: ${animeData.title_ru}`,
+                visibility: 'private',
+                host: getRoomParticipant(userId),
+            });
+            navigate(`/anime/${animeData.id}?room=${encodeURIComponent(room.roomId)}`);
+        } catch (error) {
+            console.error('Не удалось создать комнату', error);
+            alert(error instanceof Error ? error.message : 'Не удалось создать комнату');
+        }
+    };
 
     const startReply = (comment: CommentType) => {
         setReplyTarget(comment);
@@ -212,6 +239,7 @@ export default function ReleaseScreen(){
                 ) : (
                     <button onClick={() => setIsDubScreenOpen(true)} className={styles['watch-btn']}>{t('release.play')}</button>
                 )}
+                {!roomId && <button type="button" onClick={() => void createWatchRoomForRelease()} className={styles['watch-room-btn']}>Смотреть вместе</button>}
                 <div className={`${styles['grade-container']}`}>
                     <div className={styles['grade']}>
                         <p>{t('release.rating')}</p>
@@ -407,9 +435,13 @@ export default function ReleaseScreen(){
                     </section>
                 </div>
             </div>
-            {isDubScreenOpen && <DubSelectModal 
-                isOpen={isDubScreenOpen}
-                onClose={() => setIsDubScreenOpen(false)}
+            {(isDubScreenOpen || roomAutoSelect) && <DubSelectModal 
+                isOpen={isDubScreenOpen || Boolean(roomAutoSelect)}
+                autoSelect={roomAutoSelect}
+                onClose={() => {
+                    setIsDubScreenOpen(false);
+                    if (roomAutoSelect) navigate(`/anime/${animeData.id}?room=${encodeURIComponent(roomId!)}`, { replace: true });
+                }}
                 releaseId={animeData?.id}
                 onEpisodeSelect={(sources, episode, episodes, sourceId, dubId) => {
                     setIsDubScreenOpen(false)

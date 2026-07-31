@@ -1,0 +1,19 @@
+import type { RoomParticipant } from './watchRoom';
+
+type StoredIdentity = { id: number; login: string; avatar?: string | null };
+
+const IDENTITY_KEY = 'user_room_identity';
+
+export function saveRoomIdentity(profile: StoredIdentity) {
+    localStorage.setItem(IDENTITY_KEY, JSON.stringify(profile));
+}
+
+export function getRoomParticipant(userId: number): Omit<RoomParticipant, 'canControl'> {
+    try {
+        const identity = JSON.parse(localStorage.getItem(IDENTITY_KEY) ?? 'null') as StoredIdentity | null;
+        if (identity?.id === userId && identity.login) {
+            return { profileId: userId, login: identity.login, avatar: identity.avatar ?? null };
+        }
+    } catch { /* use the fallback while the profile is loading */ }
+    return { profileId: userId, login: 'Пользователь', avatar: null };
+}

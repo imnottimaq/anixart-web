@@ -16,6 +16,7 @@ import { extractVideoLinks } from '../utils/LinkParser';
 import { canUseAnime4KVideo, checkAnime4KVideoSupport } from '../shared/anime4kSupport';
 import { useTranslation } from '../shared/useTranslation';
 import { type WatchRoomState, WatchRoomSocket } from '../shared/watchRoom';
+import { getRoomParticipant } from '../shared/roomParticipant';
 
 import PlayIcon from '../assets/icons/play.svg';
 import PauseIcon from '../assets/icons/pause.svg';
@@ -183,15 +184,19 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
 
     useEffect(() => {
         if (!roomId || userId <= 0) return;
-        const participant = { profileId: userId, login: `User ${userId}` };
+        const participant = getRoomParticipant(userId);
         roomSocketRef.current.connect(roomId, participant, state => {
             setWatchRoom(state);
             const video = videoRef.current;
-            if (!video || !state.media || state.media.releaseId !== animeId || state.media.episode !== episodeNumber) return;
+            if (!video || !state.media || state.media.releaseId !== animeId || state.media.episode !== episodeNumber) {
+                if (state.media) navigate(roomMediaUrl(roomId, state.media), { replace: true });
+                return;
+            }
 
-            const targetTime = state.playback.paused
-                ? state.playback.position
-                : state.playback.position + ((Date.now() - state.playback.updatedAt) / 1000) * state.playback.rate;
+            // The Worker sends an already-normalised position. Calculating it a
+            // second time on the client made a stale timestamp jump forward
+            // after pause → play.
+            const targetTime = state.playback.position;
             applyingRoomStateRef.current = true;
             if (Math.abs(video.currentTime - targetTime) > .75) video.currentTime = targetTime;
             video.playbackRate = state.playback.rate;
@@ -201,7 +206,7 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
         }, error => console.error('Ошибка комнаты:', error));
         const interval = window.setInterval(() => roomSocketRef.current.send({ type: 'sync_request' }), 15_000);
         return () => { window.clearInterval(interval); roomSocketRef.current.disconnect(); };
-    }, [animeId, episodeNumber, roomId, userId]);
+    }, [animeId, episodeNumber, navigate, roomId, userId]);
 
     useEffect(() => {
         if (!roomId || !watchRoom || watchRoom.media || watchRoom.hostId !== userId || !playerSession.dubId || !playerSession.sourceId || episodeNumber === undefined) return;
@@ -735,6 +740,16 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
             </div>
         </div>
     );
+}
+
+function roomMediaUrl(roomId: string, media: NonNullable<WatchRoomState['media']>) {
+    const params = new URLSearchParams({
+        room: roomId,
+        dub: String(media.dubId),
+        source: String(media.sourceId),
+        episode: String(media.episode),
+    });
+    return `/anime/${media.releaseId}?${params.toString()}`;
 }
 
 function formatTime(seconds: number) {

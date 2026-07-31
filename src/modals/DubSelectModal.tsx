@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import styles from './DubSelectModal.module.css'
 import { extractVideoLinks } from '../utils/LinkParser';
 import type { VideoSources } from '../shared/types/video';
@@ -16,6 +16,7 @@ interface DubSelectModalProps {
   onClose: () => void;
   releaseId: number;
   token: string;
+  autoSelect?: { dubId: number; sourceId: number; episode: number } | null;
   onEpisodeSelect: (sources: VideoSources, episode: PlayerSessionEpisode, episodes: PlayerSessionEpisode[], sourceId: number, dubId: number) => void;
 }
 
@@ -46,7 +47,7 @@ function formatProgressTime(seconds: number) {
     return `${String(minutes).padStart(2, '0')}:${remainingSeconds}`;
 }
 
-export default function DubSelectModal({ isOpen, onClose, releaseId, token, onEpisodeSelect }: DubSelectModalProps){
+export default function DubSelectModal({ isOpen, onClose, releaseId, token, autoSelect, onEpisodeSelect }: DubSelectModalProps){
     const { settings, setSettings } = useSettings();
     const { t } = useTranslation();
     const [dubsData, setDubsData] = useState<Dub[]>([]);
@@ -55,6 +56,7 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, onEp
     const [selectedDub, setSelectedDub] = useState(0);
     const [selectedSource, setSelectedSource] = useState(0);
     const [episodeToUnwatch, setEpisodeToUnwatch] = useState<Episode | null>(null);
+    const autoSelectedRef = useRef<string | null>(null);
     const episodeProgress = getWatchProgress()[String(releaseId)] ?? {};
 
     const loadEpisodes = useCallback((relId: number, dubId: number, srcId: number, token:string) => {
@@ -73,34 +75,56 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, onEp
                 setEpisodesData([]);
 
                 if (sources.length > 0) {
+                    const roomSource = autoSelect && sources.find(source => source.id === autoSelect.sourceId);
                     const rememberedSource = settings.content.rememberSource
                         ? sources.find(source => source.id === settings.content.rememberedSourceId)
                         : undefined;
-                    const sourceId = rememberedSource?.id ?? sources[0].id;
+                    const sourceId = roomSource?.id ?? rememberedSource?.id ?? sources[0].id;
                     setSelectedSource(sourceId);
                     loadEpisodes(relId, dubId, sourceId, token);
                 }
             })
             .catch(err => console.error(err));
-    }, [loadEpisodes, settings.content.rememberSource, settings.content.rememberedSourceId, token])
+    }, [autoSelect, loadEpisodes, settings.content.rememberSource, settings.content.rememberedSourceId, token])
     
     useEffect(() => {
+        if (!isOpen) return;
         GetDubs(releaseId)
             .then(data => {
                 const dubs: Dub[] = data.types || [];
                 setDubsData(dubs);
                 
                 if (dubs.length > 0) {
+                    const roomDub = autoSelect && dubs.find(dub => dub.id === autoSelect.dubId);
                     const rememberedDub = settings.content.rememberDub
                         ? dubs.find(dub => dub.id === settings.content.rememberedDubId)
                         : undefined;
-                    const dubId = rememberedDub?.id ?? dubs[0].id;
+                    const dubId = roomDub?.id ?? rememberedDub?.id ?? dubs[0].id;
                     setSelectedDub(dubId);
                     loadSources(releaseId, dubId);
                 }
             })
             .catch(err => console.error(err))
-    }, [loadSources, releaseId, settings.content.rememberDub, settings.content.rememberedDubId])
+    }, [autoSelect, isOpen, loadSources, releaseId, settings.content.rememberDub, settings.content.rememberedDubId])
+
+    const selectEpisode = useCallback(async (episode: Episode, shouldMarkWatched: boolean) => {
+        if (shouldMarkWatched && token) await SetWatched(releaseId, selectedSource, episode.position, token);
+        const sources = await extractVideoLinks(episode.url);
+        if (sources) onEpisodeSelect(sources, {
+            name: episode.name,
+            position: episode.position,
+            url: episode.url,
+        }, episodesData.map(({ name, position, url }) => ({ name, position, url })), selectedSource, selectedDub);
+    }, [episodesData, onEpisodeSelect, releaseId, selectedDub, selectedSource, token]);
+
+    useEffect(() => {
+        if (!isOpen || !autoSelect || selectedDub !== autoSelect.dubId || selectedSource !== autoSelect.sourceId) return;
+        const episode = episodesData.find(item => item.position === autoSelect.episode);
+        const key = `${releaseId}:${autoSelect.dubId}:${autoSelect.sourceId}:${autoSelect.episode}`;
+        if (!episode || autoSelectedRef.current === key) return;
+        autoSelectedRef.current = key;
+        void selectEpisode(episode, false).catch(error => console.error('Не удалось открыть серию комнаты:', error));
+    }, [autoSelect, episodesData, isOpen, releaseId, selectEpisode, selectedDub, selectedSource]);
 
     if (!isOpen) return null;
 
@@ -160,19 +184,7 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, onEp
                     {episodesData && episodesData.map((episode) => (
                         <button key={`episode-${episode.position}`} 
                                 className={styles['episode']}
-                                onClick={async () => {
-                                    await SetWatched(releaseId, selectedSource, episode.position, token)
-                                    const sources = await extractVideoLinks(episode.url);
-                                    if (sources) onEpisodeSelect(sources, {
-                                        name: episode.name,
-                                        position: episode.position,
-                                        url: episode.url,
-                                    }, episodesData.map(({ name, position, url }) => ({
-                                        name,
-                                        position,
-                                        url,
-                                    })), selectedSource, selectedDub);
-                            }}>
+                                onClick={() => void selectEpisode(episode, true)}>
                                 <h3>{episode.name}</h3>
                                 <div className={styles['episode-meta']}>
                                     {episodeProgress[String(episode.position)] === -1 ? (

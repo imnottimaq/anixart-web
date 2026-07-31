@@ -3,6 +3,7 @@ export type RoomVisibility = 'private' | 'public';
 export type RoomParticipant = {
     profileId: number;
     login: string;
+    avatar?: string | null;
     canControl: boolean;
 };
 
