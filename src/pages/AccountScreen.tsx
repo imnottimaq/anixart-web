@@ -32,7 +32,7 @@ export default function AccountScreen(){
     const navigate = useNavigate()
     useEffect(() => {
         if (userToken === "") navigate('/account/login')
-    },[userToken])
+    }, [navigate, userToken])
 
     useEffect(() => {
         setSearchScope({ type: 'profiles' });
@@ -40,16 +40,20 @@ export default function AccountScreen(){
     }, [setSearchScope]);
     
     useEffect(() => {
+        if (!userToken) return;
+
         const profileId = id ? +id : userId;
+        if (!Number.isFinite(profileId) || profileId <= 0) return;
+
         GetProfileInfo(profileId, userToken)
             .then((data: ProfileAPIResponse) => {
                 setUserObject(data.profile)
             })
             .catch(err => console.error(err))
             .finally(() => setIsLoading(false))
-    }, [id])
+    }, [id, userId, userToken])
 
-    const watchDynamic = userObject?.watch_dynamics.slice(-10) ?? [];
+    const watchDynamic = userObject?.watch_dynamic?.slice(-10) ?? [];
     const maxValue = Math.max(...watchDynamic.map(({ count }) => count), 1);
 
     return (
@@ -142,7 +146,7 @@ export default function AccountScreen(){
                         {userObject?.history.map(item => 
                         <ReleaseCard key={item.id} variant="history" name={item.title_ru}
                             poster={item.image}
-                            grade={item.last_view_episode.position}
+                            grade={item.last_view_episode?.position ?? 0}
                             timestamp={item.last_view_timestamp}
                             />
                     )}

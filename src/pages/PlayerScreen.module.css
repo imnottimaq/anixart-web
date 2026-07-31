@@ -31,6 +31,21 @@
     animation: resume-prompt-in 160ms ease-out both;
 }
 
+.stream-error {
+    position: absolute;
+    z-index: 5;
+    right: 20px;
+    bottom: 84px;
+    max-width: min(420px, calc(100% - 40px));
+    padding: 10px 13px;
+    border: 1px solid rgb(255 255 255 / 16%);
+    border-radius: 10px;
+    color: #fff;
+    background: rgb(25 25 25 / 94%);
+    box-shadow: 0 8px 28px rgb(0 0 0 / 38%);
+    font-size: 13px;
+}
+
 .resume-prompt-card {
     width: min(390px, 100%);
     padding: 22px;

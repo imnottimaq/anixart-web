@@ -340,7 +340,7 @@ export class AniLibriaParser {
         const id = this.idPattern.exec(link)?.groups?.id;
         const episode = this.episodePattern.exec(link)?.groups?.ep;
 
-        const request = await proxyFetch(`https://${this._baseAniLibriaDomain}${this._endpointUrl}/${id}`);
+        const request = await fetch(`https://${this._baseAniLibriaDomain}${this._endpointUrl}/${id}`);
 
         let body = await request.json() as AniLibriaAnime;
 

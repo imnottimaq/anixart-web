@@ -1,6 +1,12 @@
 import { type CSSProperties, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import Hls from 'hls.js';
+import Hls, {
+    XhrLoader,
+    type FragmentLoaderConstructor,
+    type LoaderCallbacks,
+    type LoaderConfiguration,
+    type LoaderContext,
+} from 'hls.js';
 import styles from './PlayerScreen.module.css';
 import { useSettings } from '../shared/contexts/settingsContext';
 import { useUser } from '../shared/contexts/userContext';
@@ -23,6 +29,7 @@ import VolumeMaxIcon from '../assets/icons/volume-max.svg';
 import VolumeMuteIcon from '../assets/icons/volume-xmark.svg';
 
 const HLS_MIME_TYPE = 'application/x-mpegURL';
+const STREAM_PROXY_BASE = 'https://kodik-proxy.imnottimaq.workers.dev/corsproxy?url=';
 const PLAYBACK_RATES = [0.5, 0.75, 1, 1.25, 1.5, 2] as const;
 const ASPECT_RATIOS = {
     original: null,
@@ -32,6 +39,46 @@ const ASPECT_RATIOS = {
 } as const;
 
 type AspectRatio = keyof typeof ASPECT_RATIOS;
+
+/**
+ * Fragments are normally loaded straight from the CDN. If an individual
+ * request fails specifically as a CORS/network error (XHR status 0), retry
+ * only that fragment through the Worker once.
+ */
+class CorsFallbackFragmentLoader extends XhrLoader {
+    override load(context: LoaderContext, config: LoaderConfiguration, callbacks: LoaderCallbacks<LoaderContext>) {
+        let triedProxy = false;
+
+        const loadWithProxy = () => {
+            const proxiedContext = {
+                ...context,
+                url: `${STREAM_PROXY_BASE}${encodeURIComponent(context.url)}`,
+            };
+
+            super.load(proxiedContext, config, {
+                ...callbacks,
+                onSuccess: (response, stats, _context, networkDetails) => {
+                    response.url = context.url;
+                    callbacks.onSuccess(response, stats, context, networkDetails);
+                },
+                onError: (error, _context, networkDetails, stats) => callbacks.onError(error, context, networkDetails, stats),
+                onTimeout: (stats, _context, networkDetails) => callbacks.onTimeout(stats, context, networkDetails),
+            });
+        };
+
+        super.load(context, config, {
+            ...callbacks,
+            onError: (error, errorContext, networkDetails, stats) => {
+                if (!triedProxy && error.code === 0) {
+                    triedProxy = true;
+                    loadWithProxy();
+                    return;
+                }
+                callbacks.onError(error, errorContext, networkDetails, stats);
+            },
+        });
+    }
+}
 
 export default function PlayerScreen() {
     const [playerSession, setCurrentPlayerSession] = useState(getPlayerSession);
@@ -60,7 +107,14 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
         () => Object.keys(sources).sort((a, b) => (Number(b) || 0) - (Number(a) || 0)),
         [sources]
     );
-    const quality = settings.player.defaultQuality ?? 'default';
+    const configuredQuality = settings.player.defaultQuality ?? 'auto';
+    // This is deliberately local to the current player session. A broken CDN
+    // stream should not silently overwrite the quality selected in settings.
+    const [fallbackQuality, setFallbackQuality] = useState<string | null>(null);
+    const requestedQuality = fallbackQuality ?? configuredQuality;
+    const selectedQuality = requestedQuality !== 'auto' && sources[requestedQuality]?.[0]
+        ? requestedQuality
+        : qualities[0];
     const [isPlaying, setIsPlaying] = useState(false);
     const [isMaximized, setIsMaximized] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
@@ -77,13 +131,15 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
     const [isEpisodeChanging, setIsEpisodeChanging] = useState(false);
     const [shouldPlayNextEpisode, setShouldPlayNextEpisode] = useState(false);
     const [resumePromptTime, setResumePromptTime] = useState<number | null>(null);
+    const [streamError, setStreamError] = useState<string | null>(null);
     const promptedEpisodesRef = useRef(new Set<string>());
+    const fallbackPositionRef = useRef<{ time: number; shouldPlay: boolean } | null>(null);
     const [areControlsVisible, setAreControlsVisible] = useState(true);
     const [webGpuStatus, setWebGpuStatus] = useState<'checking' | 'supported' | 'unsupported'>(() => (
         canUseAnime4KVideo() ? 'checking' : 'unsupported'
     ));
 
-    const stream = sources[quality]?.[0] ?? sources[qualities[0]]?.[0];
+    const stream = sources[selectedQuality]?.[0];
     const timelineProgress = Number.isFinite(duration) && duration > 0
         ? Math.min((currentTime / duration) * 100, 100)
         : 0;
@@ -111,6 +167,20 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
 
         saveWatchProgress(animeId, episodeKey, video.ended ? -1 : Math.floor(video.currentTime));
     }, [animeId, episodeKey, settings.content.rememberEpisodeTime]);
+
+    const switchToLowerQuality = useCallback(() => {
+        const currentIndex = qualities.indexOf(selectedQuality);
+        const nextQuality = qualities.slice(currentIndex + 1).find(candidate => sources[candidate]?.[0]);
+        if (!nextQuality) return false;
+
+        const video = videoRef.current;
+        fallbackPositionRef.current = {
+            time: video && Number.isFinite(video.currentTime) ? video.currentTime : 0,
+            shouldPlay: Boolean(video && !video.paused),
+        };
+        setFallbackQuality(nextQuality);
+        return true;
+    }, [qualities, selectedQuality, sources]);
 
     const closePlayer = () => {
         saveEpisodeTime();
@@ -187,26 +257,56 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
         setDuration(0);
         setBufferedTime(0);
         setResumePromptTime(null);
+        setStreamError(null);
 
         const isHls = stream.type === HLS_MIME_TYPE || stream.src.includes('.m3u8') || stream.src.includes(':hls:');
         let hls: Hls | undefined;
+        let didEscalateError = false;
+        let lastBrokenFragment = '';
+        let brokenFragmentAttempts = 0;
+
+        const abandonBrokenStream = () => {
+            if (didEscalateError) return;
+            didEscalateError = true;
+
+            if (!switchToLowerQuality()) {
+                setStreamError(t('player.streamUnavailable'));
+                hls?.destroy();
+            }
+        };
 
         if (isHls && Hls.isSupported()) {
-            hls = new Hls();
+            hls = new Hls({
+                // XhrLoader is declared with the base context even though it
+                // works for Hls.js's specialised fragment loader context too.
+                fLoader: CorsFallbackFragmentLoader as unknown as FragmentLoaderConstructor,
+            });
             hls.loadSource(stream.src);
             hls.attachMedia(video);
             hls.on(Hls.Events.ERROR, (_event, data) => {
-                // Нефатальные ошибки HLS.js уже ретраит сам. Не засоряем консоль
-                // одним и тем же сообщением на каждом битом сегменте.
+                const isBrokenFragment = data.details === 'fragParsingError' || data.details === 'fragLoadError';
+                if (isBrokenFragment) {
+                    const fragmentId = String(data.frag?.sn ?? data.frag?.url ?? data.details);
+                    brokenFragmentAttempts = fragmentId === lastBrokenFragment ? brokenFragmentAttempts + 1 : 1;
+                    lastBrokenFragment = fragmentId;
+
+                    // Hls.js performs its own retry first. Repeating a bad or
+                    // CORS-blocked segment after that can never advance playback.
+                    if (brokenFragmentAttempts >= 2) abandonBrokenStream();
+                    return;
+                }
+
                 if (!data.fatal) return;
 
                 console.error('Фатальная ошибка HLS.js:', data);
                 if (data.type === Hls.ErrorTypes.NETWORK_ERROR) {
-                    hls?.startLoad();
+                    abandonBrokenStream();
                 } else if (data.type === Hls.ErrorTypes.MEDIA_ERROR) {
+                    if (didEscalateError) return;
+                    didEscalateError = true;
                     hls?.recoverMediaError();
                 } else {
-                    hls?.destroy();
+                    abandonBrokenStream();
                 }
             });
         } else {
@@ -218,7 +318,7 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
             video.removeAttribute('src');
             video.load();
         };
-    }, [stream]);
+    }, [stream, switchToLowerQuality, t]);
 
     useEffect(() => {
         if (!settings.player.qualityUpgrade || !canUseAnime4KVideo()) return;
@@ -286,6 +386,7 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
                 void markEpisodeWatched(animeId, playerSession.sourceId, targetEpisode.position, userToken);
             }
             setShouldPlayNextEpisode(shouldStartPlayback);
+            setFallbackQuality(null);
             onSessionChange({
                 ...playerSession,
                 sources,
@@ -412,11 +513,14 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
                                             <button
                                                 key={option}
                                                 type="button"
-                                                className={quality === option ? styles.selected : ''}
-                                                onClick={() => setSettings(previous => ({
-                                                    ...previous,
-                                                    player: { ...previous.player, defaultQuality: option as typeof previous.player.defaultQuality },
-                                                }))}
+                                                className={requestedQuality === option ? styles.selected : ''}
+                                                onClick={() => {
+                                                    setFallbackQuality(null);
+                                                    setSettings(previous => ({
+                                                        ...previous,
+                                                        player: { ...previous.player, defaultQuality: option as typeof previous.player.defaultQuality },
+                                                    }));
+                                                }}
                                             >{option === 'auto' ? t('player.autoQuality') : `${option}p`}</button>
                                         ))}
                                     </div>
@@ -516,6 +620,19 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
                         setDuration(video.duration);
                         video.playbackRate = playbackRate;
 
+                        const fallbackPosition = fallbackPositionRef.current;
+                        if (fallbackPosition) {
+                            const nextTime = Number.isFinite(video.duration)
+                                ? Math.min(fallbackPosition.time, Math.max(video.duration - 1, 0))
+                                : fallbackPosition.time;
+                            video.currentTime = nextTime;
+                            setCurrentTime(nextTime);
+                            fallbackPositionRef.current = null;
+                            setStreamError(null);
+                            if (fallbackPosition.shouldPlay) void video.play().catch(error => console.error('Не удалось возобновить видео:', error));
+                            return;
+                        }
+
                         const savedTime = getWatchProgress()[String(animeId)]?.[episodeKey];
                         const canResume = settings.content.rememberEpisodeTime
                             && typeof savedTime === 'number'
@@ -544,6 +661,7 @@ function PlayerContent({ playerSession, onSessionChange }: { playerSession: Play
                 <canvas ref={upscaleCanvasRef} className={`${styles['upscale-canvas']} ${isUpscalerReady ? styles['upscale-canvas-visible'] : ''}`} />
                 </div>
                 </div>
+                {streamError && <div className={styles['stream-error']} role="status">{streamError}</div>}
                 {resumePromptTime !== null && <div className={styles['resume-prompt']} role="dialog" aria-modal="true" aria-label={t('misc.continue')}>
                     <div className={styles['resume-prompt-card']}>
                         <h2>{t('misc.continue')}?</h2>

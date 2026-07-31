@@ -109,7 +109,7 @@ export interface Profile {
   is_online: boolean;
   rating_score: number;
   comments_preview: Comment;
-  watch_dynamics: [{
+  watch_dynamic: [{
     id: number;
     day: number;
     count: number;
