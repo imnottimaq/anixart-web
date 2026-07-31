@@ -83,7 +83,7 @@ function ConnectedRoom({ roomId }: { roomId: string }) {
     }, [navigate, room?.media, roomId]);
 
     useEffect(() => {
-        if (!room?.participants.length || !userToken) return;
+        if (!room?.participants.length) return;
         let cancelled = false;
         const missingIds = room.participants
             .map(participant => participant.profileId)
@@ -91,7 +91,9 @@ function ConnectedRoom({ roomId }: { roomId: string }) {
         if (!missingIds.length) return;
 
         void Promise.all(missingIds.map(async profileId => {
-            const response = await fetch(`https://api-s.anixsekai.com/profile/${profileId}?token=${encodeURIComponent(userToken)}`);
+            // Public profiles do not require a token. This also lets the room
+            // resolve names when the saved login token has not loaded yet.
+            const response = await fetch(`https://api-s.anixsekai.com/profile/${profileId}`);
             if (!response.ok) return null;
             const data = await response.json() as { profile?: { login?: string; avatar?: string | null } };
             return data.profile?.login ? [profileId, { login: data.profile.login, avatar: data.profile.avatar ?? null }] as const : null;
@@ -102,7 +104,7 @@ function ConnectedRoom({ roomId }: { roomId: string }) {
         }).catch(error => console.error('Не удалось загрузить профили участников:', error));
 
         return () => { cancelled = true; };
-    }, [participantProfiles, room?.participants, userToken]);
+    }, [participantProfiles, room?.participants]);
 
     useEffect(() => {
         const query = releaseQuery.trim();
