@@ -23,7 +23,7 @@ interface ProfileAPIResponse{
 
 export default function AccountScreen(){
     const {id} = useParams<{id: string}>();
-    const {userToken} = useUser()
+    const {userToken, userId} = useUser()
     const { setSearchScope } = useSearchScope();
     const { t } = useTranslation();
     const [userObject, setUserObject] = useState<Profile | null>(null);
@@ -49,18 +49,15 @@ export default function AccountScreen(){
             return () => { isCancelled = true; };
         }
 
-        const profileId = id ? Number(id) : null;
-        if (profileId !== null && (!Number.isFinite(profileId) || profileId <= 0)) {
+        const profileId = id ? Number(id) : userId;
+        if (!Number.isFinite(profileId) || profileId <= 0) {
             setIsLoading(false);
             return () => { isCancelled = true; };
         }
 
         const loadProfile = async () => {
-            const currentProfileId = profileId;
             try {
-                const data = currentProfileId !== null
-                    ? await getProfile(currentProfileId, userToken)
-                    : await getCurrentProfile(userToken);
+                const data = await getProfile(profileId, userToken);
                 const profile = data.profile;
                 if (!profile) throw new Error('Сервер вернул профиль без данных');
                 if (!isCancelled) setUserObject(profile);
@@ -74,7 +71,7 @@ export default function AccountScreen(){
         void loadProfile();
 
         return () => { isCancelled = true; };
-    }, [id, userToken])
+    }, [id, userId, userToken])
 
     const watchDynamic = userObject?.watch_dynamic?.slice(-10) ?? [];
     const maxValue = Math.max(...watchDynamic.map(({ count }) => count), 1);
@@ -185,12 +182,6 @@ async function getProfile(profileId:number, token:string): Promise<ProfileAPIRes
     const response = await fetch(`https://api-s.anixsekai.com/profile/${profileId}?token=${token}`)
     if (response.ok) return response.json()
     throw new Error("failed while fetching profile data: "+response.status)
-}
-
-async function getCurrentProfile(token: string): Promise<ProfileAPIResponse> {
-    const response = await fetch(`https://api-s.anixsekai.com/profile/info?token=${token}`);
-    if (response.ok) return response.json();
-    throw new Error(`failed while fetching current profile: ${response.status}`);
 }
 
 function formatSeconds(totalSeconds:number) {
