@@ -14,6 +14,6 @@ export function getRoomParticipant(userId: number): Omit<RoomParticipant, 'canCo
         if (identity?.id === userId && identity.login) {
             return { profileId: userId, login: identity.login, avatar: identity.avatar ?? null };
         }
-    } catch { /* use the fallback while the profile is loading */ }
+    } catch {  }
     return { profileId: userId, login: 'Пользователь', avatar: null };
 }

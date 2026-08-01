@@ -18,6 +18,7 @@ import { useTranslation } from '../shared/useTranslation';
 import { type WatchRoomState, WatchRoomSocket } from '../shared/watchRoom';
 import { getRoomParticipant } from '../shared/roomParticipant';
 import { useRoomPresence } from '../shared/contexts/roomContext';
+import { useApi } from '../shared/apiClient';
 
 import PlayIcon from '../assets/icons/play.svg';
 import PauseIcon from '../assets/icons/pause.svg';
@@ -102,6 +103,7 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
     const { settings, setSettings } = useSettings();
     const { t } = useTranslation();
     const { userToken, userId } = useUser();
+    const api = useApi();
     const { setActiveRoomId } = useRoomPresence();
     const playerRef = useRef<HTMLDivElement>(null);
     const videoRef = useRef<HTMLVideoElement>(null);
@@ -213,7 +215,7 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
             window.setTimeout(() => { applyingRoomStateRef.current = false; }, 120);
         }, error => console.error('Ошибка комнаты:', error), () => {
             setActiveRoomId(null);
-            navigate('/watch', { replace: true });
+            navigate('/together', { replace: true });
         });
         const interval = window.setInterval(() => roomSocketRef.current.send({ type: 'sync_request' }), 15_000);
         return () => { window.clearInterval(interval); roomSocketRef.current.disconnect(); };
@@ -454,7 +456,10 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
             const sources = await extractVideoLinks(targetEpisode.url);
             if (!sources) throw new Error('Не удалось получить ссылки на видео');
             if (playerSession.sourceId && userToken) {
-                void markEpisodeWatched(animeId, playerSession.sourceId, targetEpisode.position, userToken);
+                void Promise.all([
+                    api.get<{ code: number }>(`/episode/watch/${animeId}/${playerSession.sourceId}/${targetEpisode.position}`),
+                    api.get<{ code: number }>(`/history/add/${animeId}/${playerSession.sourceId}/${targetEpisode.position}`),
+                ]).catch(error => console.error('Не удалось отметить серию просмотренной:', error));
             }
             setShouldPlayNextEpisode(shouldStartPlayback);
             setFallbackQuality(null);
@@ -795,12 +800,4 @@ function getBufferedEnd(video: HTMLVideoElement) {
     }
 
     return bufferedEnd;
-}
-
-async function markEpisodeWatched(releaseId: number, sourceId: number, episodePosition: number, token: string) {
-    const baseUrl = `https://api-s.anixsekai.com`;
-    await Promise.all([
-        fetch(`${baseUrl}/episode/watch/${releaseId}/${sourceId}/${episodePosition}?token=${token}`),
-        fetch(`${baseUrl}/history/add/${releaseId}/${sourceId}/${episodePosition}?token=${token}`),
-    ]);
 }

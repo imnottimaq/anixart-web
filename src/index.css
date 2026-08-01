@@ -188,3 +188,10 @@ input:checked + .slider:before {
   transform: translateX(1.4em);
   background-color: var(--background-color);
 }
+
+.route-loader {
+  display: grid;
+  min-height: 50vh;
+  place-items: center;
+  color: var(--text-secondary);
+}

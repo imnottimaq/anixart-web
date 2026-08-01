@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useUser } from '../shared/contexts/userContext';
 import { type Anime } from '../shared/types/api';
 import { useTranslation } from '../shared/useTranslation';
+import { useApi } from '../shared/apiClient';
 
 export default function RandomAnime() {
     const navigate = useNavigate();
-    const { userToken } = useUser();
+    const api = useApi();
     const [error, setError] = useState<string | null>(null);
     const { t } = useTranslation();
 
@@ -19,8 +19,9 @@ export default function RandomAnime() {
             controller.abort();
         }, 15_000);
 
-        getRandomRelease(userToken, controller.signal)
-            .then((release) => {
+        api.get<{ code: number; release: Anime }>('/release/random?extended_mode=true', { signal: controller.signal })
+            .then(({ release }) => {
+                if (!release?.id) throw new Error('Сервер вернул релиз без ID.');
                 navigate(`/anime/${release.id}`, {
                     replace: true,
                     state: { partialAnime: release },
@@ -41,24 +42,11 @@ export default function RandomAnime() {
             controller.abort();
             window.clearTimeout(timeoutId);
         };
-    }, [navigate, t, userToken]);
+    }, [api, navigate, t]);
 
     return (
         <div style={{ display: 'grid', minHeight: '50vh', placeItems: 'center', textAlign: 'center' }}>
             {error ? <p>{error}</p> : <p>{t('random.searching')}</p>}
         </div>
     );
-}
-
-async function getRandomRelease(token: string, signal: AbortSignal): Promise<Anime> {
-    const response = await fetch(
-        `https://api-s.anixsekai.com/release/random?extended_mode=true&token=${token}`,
-        { signal },
-    );
-    if (!response.ok) throw new Error(`Не удалось получить случайное аниме: ${response.status}`);
-
-    const data: { release?: Anime } = await response.json();
-    if (!data.release?.id) throw new Error('Сервер вернул релиз без ID.');
-
-    return data.release;
 }

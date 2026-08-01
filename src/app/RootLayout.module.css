@@ -82,6 +82,12 @@
   text-decoration: none;
 }
 
+.notifications-link {
+  flex: 0 0 38px;
+  box-sizing: border-box;
+  text-decoration: none;
+}
+
 .room-indicator {
   position: relative;
   display: inline-flex;

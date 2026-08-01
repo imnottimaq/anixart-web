@@ -1,17 +1,25 @@
+import { lazy, Suspense, type ReactNode } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import RootLayout from './RootLayout';
 
-import LatestReleasesScreen from '../pages/LatestReleasesScreen';
-import FavoritesScreen from '../pages/FavoritesScreen';
-import ReleaseScreen from '../pages/ReleaseScreen';
-import PlayerScreen from '../pages/PlayerScreen';
-import AccountScreen from '../pages/AccountScreen';
-import LoginScreen from '../pages/LoginScreen';
-import RecoverScreen from '../pages/RecoverScreen';
-import NewAccountScreen from '../pages/NewAccountScreen';
-import RandomAnime from '../pages/RandomAnime';
-import SettingsScreen from '../pages/SettingsScreen';
-import WatchRoomScreen from '../pages/WatchRoomScreen';
+const LatestReleasesScreen = lazy(() => import('../pages/LatestReleasesScreen'));
+const FavoritesScreen = lazy(() => import('../pages/FavoritesScreen'));
+const ReleaseScreen = lazy(() => import('../pages/ReleaseScreen'));
+const PlayerScreen = lazy(() => import('../pages/PlayerScreen'));
+const AccountScreen = lazy(() => import('../pages/AccountScreen'));
+const LoginScreen = lazy(() => import('../pages/LoginScreen'));
+const RecoverScreen = lazy(() => import('../pages/RecoverScreen'));
+const NewAccountScreen = lazy(() => import('../pages/NewAccountScreen'));
+const RandomAnime = lazy(() => import('../pages/RandomAnime'));
+const SettingsScreen = lazy(() => import('../pages/SettingsScreen'));
+const WatchRoomScreen = lazy(() => import('../pages/WatchRoomScreen'));
+const NotificationsScreen = lazy(() => import('../pages/NotificationsScreen'));
+const NotificationSettingsScreen = lazy(() => import('../pages/NotificationSettingsScreen'));
+const ReleaseNotificationSettingsScreen = lazy(() => import('../pages/ReleaseNotificationSettingsScreen'));
+
+function lazyPage(page: ReactNode) {
+    return <Suspense fallback={<div className="route-loader" role="status">Загрузка…</div>}>{page}</Suspense>;
+}
 
 const basename = import.meta.env.BASE_URL === '/'
     ? undefined
@@ -22,20 +30,23 @@ export const router = createBrowserRouter([
     path: '/',
     element: <RootLayout />,
     children: [
-    { index: true, element: <LatestReleasesScreen /> },
-    { path: 'overview', element: <LatestReleasesScreen /> },
-    { path: 'favorites', element: <FavoritesScreen /> },
-    { path: 'anime/:id', element: <ReleaseScreen /> },
-    { path: 'anime/:id/watch', element: <PlayerScreen /> },
-    { path: 'account', element: <AccountScreen /> },
-    { path: 'account/:id', element: <AccountScreen/>  },
-    { path: 'account/login', element: <LoginScreen /> },
-    { path: 'account/recover', element: <RecoverScreen /> },
-    { path: 'account/create', element: <NewAccountScreen /> },
-    { path: 'random', element: <RandomAnime /> },
-    { path: 'settings', element: <SettingsScreen />}
-    ,{ path: 'watch', element: <WatchRoomScreen />}
-    ,{ path: 'watch/:roomId', element: <WatchRoomScreen />}
+    { index: true, element: lazyPage(<LatestReleasesScreen />) },
+    { path: 'overview', element: lazyPage(<LatestReleasesScreen />) },
+    { path: 'favorites', element: lazyPage(<FavoritesScreen />) },
+    { path: 'anime/:id', element: lazyPage(<ReleaseScreen />) },
+    { path: 'anime/:id/watch', element: lazyPage(<PlayerScreen />) },
+    { path: 'account', element: lazyPage(<AccountScreen />) },
+    { path: 'account/:id', element: lazyPage(<AccountScreen />)  },
+    { path: 'account/login', element: lazyPage(<LoginScreen />) },
+    { path: 'account/recover', element: lazyPage(<RecoverScreen />) },
+    { path: 'account/create', element: lazyPage(<NewAccountScreen />) },
+    { path: 'random', element: lazyPage(<RandomAnime />) },
+    { path: 'settings', element: lazyPage(<SettingsScreen />) }
+    ,{ path: 'notifications', element: lazyPage(<NotificationsScreen />) }
+    ,{ path: 'notifications/settings', element: lazyPage(<NotificationSettingsScreen />) }
+    ,{ path: 'notifications/releases', element: lazyPage(<ReleaseNotificationSettingsScreen />) }
+    ,{ path: 'together', element: lazyPage(<WatchRoomScreen />) }
+    ,{ path: 'together/:roomId', element: lazyPage(<WatchRoomScreen />) }
     ],
 },
 ], { basename });

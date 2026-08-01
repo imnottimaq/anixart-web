@@ -4,12 +4,12 @@ import { type Anime } from "../shared/types/api";
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "../shared/contexts/settingsContext";
 import { useSearchScope, type SearchScope } from "../shared/contexts/searchContext";
-import { useUser } from "../shared/contexts/userContext";
 import AnimeCard from "./AnimeCard";
 import AnimeCardHorizontal from "./AnimeCardHorizontal";
 import SearchIcon from "../assets/icons/search.svg";
 import RemoteImage from './RemoteImage';
 import { useTranslation } from '../shared/useTranslation';
+import { useApi } from '../shared/apiClient';
 
 interface ReleaseSearchResponse{
   code: number;
@@ -49,7 +49,7 @@ export default function SearchButton(){
     const {settings} = useSettings()
     const { t } = useTranslation();
     const { searchScope } = useSearchScope();
-    const { userToken } = useUser();
+    const api = useApi();
     const [isSearchOpen, setIsSearchOpen] = useState(false);
 
     const navigate = useNavigate()
@@ -76,7 +76,7 @@ export default function SearchButton(){
 
         const timer = window.setTimeout(() => {
             setIsLoading(true);
-            GetSearchResults(value, searchScope, userToken)
+            GetSearchResults(value, searchScope, api, settings.content.proxySearchThroughShikimori)
                 .then(data => {
                     setIsSearchOpen(true);
                     setSearchResults(data);
@@ -89,7 +89,7 @@ export default function SearchButton(){
         }, 500)
 
         return () => window.clearTimeout(timer)
-    }, [query, searchScope, userToken])
+    }, [api, query, searchScope, settings.content.proxySearchThroughShikimori])
 
     const clearSearch = () => {
         setQuery('');
@@ -169,7 +169,12 @@ export default function SearchButton(){
     )
 }
 
-async function GetSearchResults(query: string, searchScope: SearchScope, token: string): Promise<SearchResults> {
+async function GetSearchResults(
+    query: string,
+    searchScope: SearchScope,
+    api: ReturnType<typeof useApi>,
+    useShikimoriProxy: boolean,
+): Promise<SearchResults> {
     const endpoint = searchScope.type === 'profiles'
         ? '/search/profiles/0'
         : searchScope.type === 'favorites'
@@ -179,21 +184,11 @@ async function GetSearchResults(query: string, searchScope: SearchScope, token: 
                 : searchScope.type === 'profileList'
                     ? `/search/profile/list/${searchScope.list}/0`
                     : '/search/releases/0';
-    const tokenQuery = searchScope.type === 'releases' ? '' : `?token=${encodeURIComponent(token)}`;
-    const response = await fetch(`https://api-s.anixsekai.com${endpoint}${tokenQuery}`, {
-        method: 'POST',
-        headers: {
-            'Api-Version': 'v2',
-            'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-            query: query,
-            searchBy: 0,
-        })
-    })
-    if (!response.ok) throw new Error(`Ошибка поиска: ${response.status}`);
+    const searchQuery = useShikimoriProxy && searchScope.type === 'releases'
+        ? await getShikimoriSearchQuery(query)
+        : query;
 
-    const data = await response.json() as {
+    const data = await api.post<{
         code: number;
         related?: ReleaseSearchResponse['related'];
         releases?: Anime[];
@@ -202,7 +197,7 @@ async function GetSearchResults(query: string, searchScope: SearchScope, token: 
         total_count?: number;
         total_page_count?: number;
         current_page?: number;
-    };
+    }>(endpoint, { query: searchQuery, searchBy: 0 }, { 'Api-Version': 'v2' });
     if (data.code === 0) {
         if (searchScope.type === 'profiles') {
             return {
@@ -220,4 +215,37 @@ async function GetSearchResults(query: string, searchScope: SearchScope, token: 
         };
     }
     throw new Error("Error while performing search: " + data.code)
+}
+
+type ShikimoriSearchResponse = {
+    data?: {
+        animes?: Array<{
+            name?: string | null;
+            russian?: string | null;
+        }>;
+    };
+    errors?: Array<{ message?: string }>;
+};
+
+async function getShikimoriSearchQuery(query: string) {
+    try {
+        const response = await fetch('https://shikimori.one/api/graphql', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                query: `query SearchAnime($search: String!) {
+                    animes(search: $search, limit: 1) { name russian }
+                }`,
+                variables: { search: query },
+            }),
+        });
+
+        if (!response.ok) return query;
+
+        const data = await response.json() as ShikimoriSearchResponse;
+        const anime = data.data?.animes?.[0];
+        return anime?.russian?.trim() || anime?.name?.trim() || query;
+    } catch {
+        return query;
+    }
 }

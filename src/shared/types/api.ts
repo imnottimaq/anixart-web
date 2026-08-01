@@ -1,3 +1,5 @@
+import type { Dub } from "../../modals/DubSelectModal";
+
 export interface Anime {
   id: number;
   image: string;
@@ -109,7 +111,7 @@ export interface Profile {
   is_online: boolean;
   rating_score: number;
   comments_preview: Comment;
-  watch_dynamic: [{
+  watch_dynamics: [{
     id: number;
     day: number;
     count: number;
@@ -130,3 +132,117 @@ export interface ProfileHistoryRelease extends Anime {
   };
   last_view_timestamp: number;
 }
+
+export interface NotificationsPreferencesAPIResponse {
+  code: number;
+  profileStatusNotificationPreferences: Array<{
+    '@id': number;
+    status: 'FAVORITE_STATUS' | 'STATUS_WATCHING' | 'STATUS_PLAN' | 'STATUS_COMPLETED' | 'STATUS_HOLD_ON' | 'STATUS_DROPPED';
+  }>;
+  profileTypeNotificationPreferences: Array<{
+    '@id': number;
+    type: Dub;
+  }>;
+  is_release_type_notifications_enabled: boolean;
+  is_episode_notifications_enabled: boolean;
+  is_first_episode_notification_enabled: boolean;
+  is_related_release_notifications_enabled: boolean;
+  is_report_process_notifications_enabled: boolean;
+  is_comment_notifications_enabled: boolean;
+  is_my_collection_comment_notifications_enabled: boolean;
+  is_article_notifications_enabled: boolean;
+  is_my_article_comment_notifications_enabled: boolean;
+}
+
+export interface AnimeWithSelectedDub extends Anime {
+  profile_release_type_notification_preference_count: number,
+  is_release_type_notifications_enabled: boolean
+}
+
+export interface AllDubbersAPIResponse {
+  code: number,
+  types: Dub[]
+}
+
+export interface ReleaseNotificationsPreferencesAPIResponse { // https://api-s.anixsekai.com/profile/preference/notification/release/all/{page}?token=
+  code: number;
+  content: AnimeWithSelectedDub[];
+  total_count: number;
+  total_page_count: number;
+  current_page: number
+}
+
+export interface NotificationsPagedResponse<TNotification> {
+  code: number;
+  content: TNotification[];
+  total_count: number;
+  total_page_count: number;
+  current_page: number;
+}
+
+export type AllNotificationsAPIResponse = NotificationsPagedResponse<AnixartNotification>;
+
+export type NotificationProfile = Pick<Profile, 'id' | 'login' | 'avatar'>;
+
+export type NotificationBase<TType extends string = string> = {
+  type: TType;
+  id: number;
+  profile?: NotificationProfile;
+  timestamp: number;
+  is_pushed: boolean;
+  is_new: boolean;
+};
+
+export type EpisodeNotification = NotificationBase<'episode'> & {
+  episode: {
+    name: string;
+    position: number;
+    release: { id: number; title_ru: string; image: string | null };
+    source: { id: number; name: string; type: { name: string } | null };
+  };
+};
+
+export type FriendNotification = NotificationBase<'friend'> & {
+  status: string;
+  by_profile: NotificationProfile;
+};
+
+export type RelatedReleaseNotification = NotificationBase<'relatedRelease'> & {
+  '@id': number;
+  release: number;
+};
+
+export type ArticleNotification = NotificationBase<'article'> & {
+  '@id': number;
+  article: number;
+};
+
+export type NotificationComment = {
+  id: number;
+  message: string;
+  is_spoiler: boolean;
+  profile?: NotificationProfile;
+};
+
+export type ReleaseNotificationComment = NotificationComment & {
+  release: { id: number; title_ru: string; image: string | null };
+};
+
+export type ReleaseCommentNotification = NotificationBase<'releaseComment'> & {
+  parentComment?: ReleaseNotificationComment;
+  comment?: ReleaseNotificationComment;
+};
+
+export type CollectionCommentNotification = NotificationBase<'myCollection'> & {
+  collection_comment: NotificationComment & {
+    collection: { id: number; title: string; image: string | null };
+  };
+};
+
+export type AnixartNotification =
+  | EpisodeNotification
+  | FriendNotification
+  | RelatedReleaseNotification
+  | ArticleNotification
+  | ReleaseCommentNotification
+  | CollectionCommentNotification;

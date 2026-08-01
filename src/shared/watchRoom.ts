@@ -18,6 +18,7 @@ export type RoomMedia = {
 
 export type WatchRoomState = {
     roomId: string;
+    joinCode: string;
     visibility: RoomVisibility;
     hostId: number;
     title: string;
@@ -61,6 +62,12 @@ export async function getPublicWatchRooms() {
     const response = await fetch(`${ROOM_SERVER_URL}/rooms`);
     if (!response.ok) throw new Error(`Не удалось загрузить комнаты: ${response.status}`);
     return response.json() as Promise<{ rooms: Array<Pick<WatchRoomState, 'roomId' | 'title' | 'hostId' | 'media'> & { participants: number }>; cursor: string | null }>;
+}
+
+export async function resolveWatchRoomCode(code: string) {
+    const response = await fetch(`${ROOM_SERVER_URL}/rooms/code/${encodeURIComponent(code.trim().toUpperCase())}`);
+    if (!response.ok) throw new Error('Комната с таким кодом не найдена');
+    return response.json() as Promise<{ roomId: string }>;
 }
 
 export async function getWatchRoomProfile(profileId: number) {

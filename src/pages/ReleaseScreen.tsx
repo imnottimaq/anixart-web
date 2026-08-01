@@ -30,8 +30,7 @@ import { createWatchRoom } from '../shared/watchRoom'
 import { getRoomParticipant } from '../shared/roomParticipant'
 import { useRoomPresence } from '../shared/contexts/roomContext'
 import RecommendedRelease from "../components/RecommendedRelease";
-
-const AGENT_PROXY = "https://kodik-proxy.imnottimaq.workers.dev/agentproxy?url="
+import { useApi } from "../shared/apiClient";
 
 export default function ReleaseScreen(){
     const {id} = useParams<{id: string}>();
@@ -41,6 +40,7 @@ export default function ReleaseScreen(){
     const { t } = useTranslation();
     const navigate = useNavigate();
     const location = useLocation();
+    const api = useApi();
     const roomParams = new URLSearchParams(location.search);
     const roomId = roomParams.get('room');
     const roomAutoSelect = roomId
@@ -127,17 +127,19 @@ export default function ReleaseScreen(){
 
         try {
             if (editTarget) {
-                await EditComment(editTarget.id, message, commentSpoiler, userToken);
+                await api.postViaAgent<{code?:number}>(`/release/comment/edit/${editTarget.id}`, {message, spoiler: commentSpoiler});
                 setEditedComment({ commentId: editTarget.id, message, spoiler: commentSpoiler });
             } else {
-                const result = await SendCommentOrReply(
-                    animeData.id,
+                const result = await api.postViaAgent<{code: number, comment: CommentType | null}>
+                    (`/release/comment/add/${animeData.id}`, {
                     message,
-                    commentSpoiler,
-                    userToken,
-                    replyTarget?.id,
-                    replyTarget?.profile.id,
-                );
+                    spoiler: commentSpoiler,
+                    parentCommentId: replyTarget?.id ?? null, 
+                    replyToProfileId: replyTarget?.profile.id ?? null
+                })
+
+                if (!result.comment) throw new Error('Server hasnt returned created comment')
+
                 const createdComment = result.comment;
                 if (createdComment) {
                     setUserId(createdComment.profile.id);
@@ -163,15 +165,15 @@ export default function ReleaseScreen(){
     };
 
     useEffect(() => {
-        GetRelease(id, userToken)
+        api.get<{code: number, release: Anime}>(`/release/${id}`)
             .then(data => {
-                const release = data.release as Anime;
+                const release = data.release;
                 setAnimeData(release);
                 setScreenshots(release.screenshot_images);
             })
             .catch(error => console.error('Не удалось загрузить релиз:', error))
             .finally(() => setLoadedRequestKey(requestKey));
-    }, [id, requestKey, userToken]);
+    }, [api, id, requestKey, userToken]);
 
     if (isReleaseLoading) {
         return <div className={styles['loading-overlay']} aria-label={t('misc.loading')} />;
@@ -206,7 +208,7 @@ export default function ReleaseScreen(){
                                 ...prev,
                                 profile_list_status: newStatus
                             }));
-                            SendWatchlistChange(animeData.id, newStatus, userToken)
+                            api.get<{code: number}>(`/profile/list/add/${newStatus}/${animeData.id}`)
                                 .catch(err => console.error(err));
                         }} 
                         value={animeData?.profile_list_status ?? 0}>
@@ -224,16 +226,15 @@ export default function ReleaseScreen(){
                                     return;
                                 }
                                 try {
-                                    await HandleFavorite(animeData.id, userToken);
+                                    await api.get<{code: number}>(animeData.is_favorite ? `/favorite/delete/${animeData.id}` : `/favorite/add/${animeData.id}`)
                                     
-                                    setAnimeData((prev: Anime) => {
-                                        const wasFavorite = prev.is_favorite;
-                                        return {
-                                            ...prev,
-                                            is_favorite: !wasFavorite,
-                                            favorites_count: wasFavorite ? prev.favorites_count - 1 : prev.favorites_count + 1
-                                        };
-                                    });
+                                    setAnimeData(previous => ({
+                                        ...previous,
+                                        is_favorite: !previous.is_favorite,
+                                        favorites_count: previous.is_favorite
+                                            ? previous.favorites_count - 1
+                                            : previous.favorites_count + 1,
+                                    }));
                                 } catch (err) {
                                     console.error(err);
                                 }
@@ -467,73 +468,6 @@ export default function ReleaseScreen(){
             />}
         </div>
     )
-}
-
-async function GetRelease(id: string | undefined, token: string) {
-    const response = await fetch(`https://api-s.anixsekai.com/release/${id}?extended_mode=true&token=${token}`)
-    if (response.ok) return response.json()
-    throw new Error("Error while trying to fetch release data:" + response.status);
-}
-
-async function SendWatchlistChange(id: number, status: number, token: string){
-    const response = await fetch(`https://api-s.anixsekai.com/profile/list/add/${status}/${id}?token=${token}`)
-    if (response.ok) {
-        return
-    }
-    throw new Error(response.status.toString())
-}
-
-async function HandleFavorite(releaseId: number, token: string) {
-    const response = await fetch(`https://api-s.anixsekai.com/favorite/add/${releaseId}?token=${token}`); 
-    if (!response.ok) throw new Error("Error while trying to favorite release: " + response.status);
-
-    const data = await response.json();
-
-    if (data.code === 3) {
-        const deleteResponse = await fetch(`https://api-s.anixsekai.com/favorite/delete/${releaseId}?token=${token}`);
-        if (!deleteResponse.ok) throw new Error("Error while trying to unfavorite release: " + deleteResponse.status);
-        return await deleteResponse.json();
-    } 
-    
-    if (data.code === 0) return data;
-    return data;
-}
-
-type CommentAddResponse = {
-    code: number;
-    comment: CommentType | null;
-}
-
-async function SendCommentOrReply(releaseId: number, message: string, spoiler: boolean, token: string, parentCommentId?: number, replyToProfileId?: number): Promise<CommentAddResponse>{
-    const targetUrl = `https://api-s.anixsekai.com/release/comment/add/${releaseId}?token=${token}`
-    const response = await fetch(`${AGENT_PROXY}${encodeURIComponent(targetUrl)}`,{
-        method: 'POST',
-        headers: {'Content-Type' : 'application/json'},
-        body: JSON.stringify({
-            parentCommentId: parentCommentId ?? null,
-            replyToProfileId: replyToProfileId ?? null,
-            message: message,
-            spoiler: spoiler
-        })
-    })
-    const data = await response.json() as CommentAddResponse
-    if (data.code === 0) return data
-    throw new Error(`Не удалось отправить комментарий: ${JSON.stringify(data)}`)
-}
-
-async function EditComment(commentId: number, message: string, spoiler: boolean, token: string) {
-    const targetUrl = `https://api-s.anixsekai.com/release/comment/edit/${commentId}?token=${token}`;
-    const response = await fetch(`${AGENT_PROXY}${encodeURIComponent(targetUrl)}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ message, spoiler }),
-    });
-    if (!response.ok) throw new Error(`Не удалось отредактировать комментарий: ${response.status}`);
-
-    const data: { code?: number } = await response.json();
-    if (data.code !== undefined && data.code !== 0) {
-        throw new Error(`Не удалось отредактировать комментарий: code ${data.code}`);
-    }
 }
 
 function plural(value: number, one: string, few: string, many: string) {

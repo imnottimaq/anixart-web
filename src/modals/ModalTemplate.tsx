@@ -20,11 +20,12 @@ type ModalProps = {
 
     size? : "small" | "medium" | "large" | "fullscreen";
     showCloseButton?: boolean;
+    stickyHeader?: boolean;
     contentClassName?: string;
     contentStyle?: React.CSSProperties;
 };
 
-export function Modal({ isOpen, onClose, title, text, actions, children, size, showCloseButton, contentClassName, contentStyle }: ModalProps) {
+export function Modal({ isOpen, onClose, title, text, actions, children, size, showCloseButton, stickyHeader = false, contentClassName, contentStyle }: ModalProps) {
     const { t } = useTranslation();
     const [isClosing, setIsClosing] = useState(false);
 
@@ -49,6 +50,7 @@ export function Modal({ isOpen, onClose, title, text, actions, children, size, s
             className={[
                 styles.modal,
                 `${ size ? styles[`size-${size ?? ''}`]: ""}`,
+                stickyHeader ? styles['sticky-header'] : '',
                 contentClassName,
                 isClosing ? styles['modal-closing'] : '',
             ].filter(Boolean).join(' ')}

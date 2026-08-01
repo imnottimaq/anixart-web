@@ -4,15 +4,14 @@ import { Modal } from '../modals/ModalTemplate';
 import SearchBar from '../components/SearchBar'
 import { useSettings } from '../shared/contexts/settingsContext';
 import { useTranslation } from '../shared/useTranslation';
-import SunIcon from '../assets/icons/sun.svg';
-import MoonIcon from '../assets/icons/moon.svg';
 import SettingsIcon from '../assets/icons/gear.svg';
 import UsersIcon from '../assets/icons/users.svg';
+import NotificationsIcon from '../assets/icons/notifications.svg';
 import { useRoomPresence } from '../shared/contexts/roomContext';
 import styles from './RootLayout.module.css';
 
 export default function RootLayout() {
-  const { settings, setSettings } = useSettings();
+  const { settings } = useSettings();
   const { t } = useTranslation();
   const { activeRoomId } = useRoomPresence();
   const { theme } = settings.appearance;
@@ -40,11 +39,11 @@ export default function RootLayout() {
             <Link to="/favorites" className={styles['nav-link']}>{t('nav.favorites')}</Link>
             <Link to="/account" className={styles['nav-link']}>{t('nav.account')}</Link>
             <Link to="/random" className={styles['nav-link']}>{t('nav.random')}</Link>
-            <Link to="/watch" className={styles['nav-link']}>Смотреть вместе</Link>
+            <Link to="/together" className={styles['nav-link']}>Смотреть вместе</Link>
           </nav>
           <SearchBar />
           {activeRoomId && <Link
-            to={`/watch/${activeRoomId}`}
+            to={`/together/${activeRoomId}`}
             className={styles['room-indicator']}
             title="Вы в комнате — вернуться"
           ><span className={styles['room-status']} /><img src={UsersIcon} alt="" /><span>В комнате</span></Link>}
@@ -56,21 +55,14 @@ export default function RootLayout() {
           >
             <img src={SettingsIcon} alt="" />
           </Link>
-          <button
-            type="button"
-            className={styles['theme-toggle']}
-            onClick={() => setSettings(previous => ({
-              ...previous,
-              appearance: {
-                ...previous.appearance,
-                theme: previous.appearance.theme === 'dark' ? 'light' : 'dark',
-              },
-            }))}
-            aria-label={t('settings.darkTheme')}
-            title={t('settings.darkTheme')}
+          <Link
+            to="/notifications"
+            className={`${styles['theme-toggle']} ${styles['notifications-link']}`}
+            aria-label="Уведомления"
+            title="Уведомления"
           >
-            <img src={theme === 'dark' ? SunIcon : MoonIcon} alt="" />
-          </button>
+            <img src={NotificationsIcon} alt="" />
+          </Link>
         </header>
         <main className={styles.main}>
           <Outlet/>

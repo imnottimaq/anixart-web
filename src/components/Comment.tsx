@@ -10,8 +10,7 @@ import { Modal } from '../modals/ModalTemplate'
 import { type Comment } from '../shared/types/api'
 import RemoteImage from './RemoteImage'
 import { useTranslation } from '../shared/useTranslation';
-
-const AGENT_PROXY = "https://kodik-proxy.tima3050505.workers.dev/agentproxy?url="
+import { useApi } from '../shared/apiClient'
 
 export interface CommentProps {
     comment: Comment,
@@ -22,14 +21,9 @@ export interface CommentProps {
     editedComment?: { commentId: number; message: string; spoiler: boolean } | null
 }
 
-interface CommentRepliesResponse {
-    content: Comment[],
-    total_count: number,
-    total_page_count: number
-}
-
 export default function CommentComponent({ comment, releaseId, onReply, onEdit, newReply, editedComment }: CommentProps) {
     const { t } = useTranslation();
+    const api = useApi();
     const [isRepliesShown, setIsRepliesShown] = useState(false);
     const userToken = useUser()
     const [replies, setReplies] = useState<Comment[]>([]);
@@ -59,14 +53,12 @@ export default function CommentComponent({ comment, releaseId, onReply, onEdit, 
         setIsVoting(true);
 
         try {
-            await HandleVote(comment.id, selectedVote, userToken.userToken);
+            await api.getViaAgent<{ code: number }>(`/release/comment/vote/${comment.id}/${selectedVote}`);
             setVoteCount((count) => count + getVoteScore(nextVote) - getVoteScore(currentVote));
             setCurrentVote(nextVote);
-        } catch (error) {
-            console.error('Ошибка голосования:', error);
-        } finally {
-            setIsVoting(false);
-        }
+        } 
+        catch (error) { console.error('Ошибка голосования:', error); } 
+        finally {setIsVoting(false);}
     };
 
     const handleDeleteComment = async () => {
@@ -74,10 +66,10 @@ export default function CommentComponent({ comment, releaseId, onReply, onEdit, 
 
         setIsCommentActionLoading(true);
         try {
-            await deleteComment(comment.id, userToken.userToken);
+            await api.getViaAgent<{ code: number }>(`/release/comment/delete/${comment.id}`);
             setIsCommentDeleted(true);
-        } catch (error) {
-            console.error('Ошибка удаления комментария:', error);
+        } catch (err) {
+            console.error('Ошибка удаления комментария:', err);
         } finally {
             setIsCommentActionLoading(false);
         }
@@ -91,27 +83,24 @@ export default function CommentComponent({ comment, releaseId, onReply, onEdit, 
         const appendReply = async () => {
             setIsLoading(true);
             try {
-                const existingReplies = await fetchCommentReplies(comment.id, 0, userToken.userToken);
+                const existingReplies = await api.get<{code: number, content: Comment[], total_count: number, total_page_count: number}>
+                (`release/comment/replies/${comment.id}/0?sort=2`)
                 if (isCancelled) return;
 
                 setReplies([
-                    ...existingReplies.filter((reply) => reply.id !== newReply.comment.id),
+                    ...existingReplies.content.filter((reply) => reply.id !== newReply.comment.id),
                     newReply.comment,
                 ]);
                 setReplyCount((count) => count + 1);
                 setIsRepliesShown(true);
-            } catch (error) {
-                console.error('Ошибка загрузки ответов:', error);
-            } finally {
-                if (!isCancelled) setIsLoading(false);
-            }
+            } 
+            catch (err) {console.error('Ошибка загрузки ответов:', err)} 
+            finally {if (!isCancelled) setIsLoading(false)}
         };
 
         void appendReply();
 
-        return () => {
-            isCancelled = true;
-        };
+        return () => {isCancelled = true}
     }, [comment.id, newReply, userToken.userToken]);
 
     const toggleReplies = async () => {
@@ -123,17 +112,14 @@ export default function CommentComponent({ comment, releaseId, onReply, onEdit, 
         if (replies.length === 0) {
             setIsLoading(true);
             try {
-                const fetchedReplies = await fetchCommentReplies(comment.id, 0, userToken.userToken);
-                setReplies(fetchedReplies);
+                const fetchedReplies = await api.get<{code: number, content: Comment[], total_count: number, total_page_count: number}>
+                (`release/comment/replies/${comment.id}/0?sort=2`)
+                setReplies(fetchedReplies.content);
                 setIsRepliesShown(true);
-            } catch (err) {
-                console.error("Ошибка загрузки ответов:", err);
-            } finally {
-                setIsLoading(false);
-            }
-        } else {
-            setIsRepliesShown(true);
-        }
+            } 
+            catch (err) {console.error("Ошибка загрузки ответов:", err)} 
+            finally {setIsLoading(false)}
+        } else setIsRepliesShown(true);
     };
 
     if (isCommentDeleted) return null;
@@ -253,15 +239,6 @@ export default function CommentComponent({ comment, releaseId, onReply, onEdit, 
     )
 }
 
-async function fetchCommentReplies(commentId: number, page: number, token: string): Promise<Comment[]> {
-    const response = await fetch(`https://api-s.anixsekai.com/release/comment/replies/${commentId}/${page}?sort=2&token=${token}`);
-    if (!response.ok) {
-        throw new Error("Не удалось загрузить ответы: " + response.status);
-    }
-    const data: CommentRepliesResponse = await response.json();
-    return data.content;
-}
-
 function getPluralReplies(count: number): string {
     const absCount = Math.abs(count) % 100;
     const lastDigit = absCount % 10;
@@ -278,13 +255,9 @@ function formatCustomDate(dateInput: Date | string | number): string {
     if (typeof dateInput === 'number') {
         const isSeconds = dateInput.toString().length <= 10;
         date = new Date(isSeconds ? dateInput * 1000 : dateInput);
-    } else {
-        date = new Date(dateInput);
-    }
+    } else date = new Date(dateInput);
 
-    if (isNaN(date.getTime())) {
-        return 'Некорректная дата';
-    }
+    if (isNaN(date.getTime())) return 'Некорректная дата';
 
     const currentYear = new Date().getFullYear();
     const options: Intl.DateTimeFormatOptions = { 
@@ -292,9 +265,7 @@ function formatCustomDate(dateInput: Date | string | number): string {
         day: 'numeric' 
     };
     
-    if (date.getFullYear() !== currentYear) {
-        options.year = 'numeric';
-    }
+    if (date.getFullYear() !== currentYear) options.year = 'numeric';
     
     return new Intl.DateTimeFormat('ru-RU', options).format(date);
 }
@@ -303,34 +274,4 @@ function getVoteScore(vote: number): number {
     if (vote === 2) return 1;
     if (vote === 1) return -1;
     return 0;
-}
-
-async function HandleVote(commentId: number, vote: 1|2, token: string){
-    const response = await fetch(`${AGENT_PROXY}${encodeURIComponent(`https://api-s.anixsekai.com/release/comment/vote/${commentId}/${vote}?token=${token}`)}`)
-    if (!response.ok) throw new Error("Failed to vote on comment: " + response.status)
-
-    const data = await response.json()
-    if (data.code !== undefined && data.code !== 0) {
-        throw new Error("Failed to vote on comment: " + data.code)
-    }
-
-    return data
-}
-
-async function deleteComment(commentId: number, token: string) {
-    const targetUrl = `https://api-s.anixsekai.com/release/comment/delete/${commentId}?token=${token}`;
-    const response = await fetch(`${AGENT_PROXY}${encodeURIComponent(targetUrl)}`);
-
-    return getCommentActionResponse(response, 'удалить');
-}
-
-async function getCommentActionResponse(response: Response, action: string) {
-    if (!response.ok) throw new Error(`Не удалось ${action} комментарий: ${response.status}`);
-
-    const data: { code?: number } = await response.json();
-    if (data.code !== undefined && data.code !== 0) {
-        throw new Error(`Не удалось ${action} комментарий: code ${data.code}`);
-    }
-
-    return data;
 }

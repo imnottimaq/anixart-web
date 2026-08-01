@@ -13,8 +13,10 @@
 .settings-item {
     display: flex;
     align-items: center;
-    gap: 28px;
-    padding: 20px 0 28px;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 64px;
+    padding: 10px 0;
     border-bottom: 1px solid color-mix(in srgb, var(--text-color) 13%, transparent);
 }
 
@@ -26,6 +28,11 @@
 .card-type-section h2 {
     margin: 0;
     color: var(--text-color);
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.card-type-section h2 {
     font-size: 20px;
 }
 
@@ -110,14 +117,15 @@
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-    padding: 20px 0;
+    min-height: 64px;
+    padding: 10px 0;
     border-bottom: 1px solid color-mix(in srgb, var(--text-color) 13%, transparent);
 }
 
 .select-setting span,
 .range-setting span { display: flex; flex-direction: column; gap: 5px; }
 .select-setting strong,
-.range-setting strong { color: var(--text-color); font-size: 18px; }
+.range-setting strong { color: var(--text-color); font-size: 17px; font-weight: 600; }
 .select-setting small,
 .range-setting small { color: var(--text-secondary); }
 

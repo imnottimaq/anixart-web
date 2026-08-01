@@ -78,6 +78,9 @@
 .release-results a { display: grid; gap: 3px; padding: 10px 12px; color: var(--text-color); text-decoration: none; border: 1px solid var(--border-color); border-radius: 10px; background: color-mix(in srgb, var(--text-color) 4%, transparent); }
 .release-results a:hover { border-color: var(--accent-color); background: color-mix(in srgb, var(--accent-color) 10%, transparent); }
 .release-results span { color: var(--text-secondary); font-size: 13px; }
+.join-by-code { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: end; gap: 8px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-color); }
+.join-by-code label { margin: 0; }
+.join-by-code button:disabled { cursor: not-allowed; opacity: .55; }
 .participant-menu-wrap { position: relative; }
 .participant-menu-button { width: 30px; height: 30px; padding: 0 !important; border: 0 !important; border-radius: 8px !important; color: var(--text-secondary) !important; background: transparent !important; font-size: 20px !important; line-height: 1; }
 .participant-menu-button:hover { color: var(--text-color) !important; background: color-mix(in srgb, var(--text-color) 8%, transparent) !important; }

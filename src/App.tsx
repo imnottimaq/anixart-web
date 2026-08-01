@@ -27,6 +27,7 @@ function App() {
         player: { ...defaultAppSettings.player, ...parsed.player },
         content: { ...defaultAppSettings.content, ...parsed.content },
         appearance: { ...defaultAppSettings.appearance, ...parsed.appearance },
+        notifications: { ...defaultAppSettings.notifications, ...parsed.notifications },
       };
     } catch {
       return defaultAppSettings;

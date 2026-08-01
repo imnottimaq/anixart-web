@@ -9,6 +9,7 @@ import { clearWatchProgress, getWatchProgress } from '../shared/watchProgress';
 import { Modal } from './ModalTemplate';
 import { useSettings } from '../shared/contexts/settingsContext';
 import { useTranslation } from '../shared/useTranslation';
+import { useApi } from '../shared/apiClient';
 
 
 interface DubSelectModalProps {
@@ -20,7 +21,7 @@ interface DubSelectModalProps {
   onEpisodeSelect: (sources: VideoSources, episode: PlayerSessionEpisode, episodes: PlayerSessionEpisode[], sourceId: number, dubId: number) => void;
 }
 
-interface Dub {
+export interface Dub {
     id: number;
     name: string;
     episodes_count: number;
@@ -49,6 +50,7 @@ function formatProgressTime(seconds: number) {
 
 export default function DubSelectModal({ isOpen, onClose, releaseId, token, autoSelect, onEpisodeSelect }: DubSelectModalProps){
     const { settings, setSettings } = useSettings();
+    const api = useApi();
     const { t } = useTranslation();
     const [dubsData, setDubsData] = useState<Dub[]>([]);
     const [sourcesData, setSourcesData] = useState<Source[]>([]);
@@ -59,16 +61,16 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, auto
     const autoSelectedRef = useRef<string | null>(null);
     const episodeProgress = getWatchProgress()[String(releaseId)] ?? {};
 
-    const loadEpisodes = useCallback((relId: number, dubId: number, srcId: number, token:string) => {
-        GetEpisodes(relId, dubId, srcId, token)
+    const loadEpisodes = useCallback((relId: number, dubId: number, srcId: number) => {
+        GetEpisodes(api, relId, dubId, srcId)
             .then(data => {
                 setEpisodesData(data.episodes || []);
             })
             .catch(err => console.error(err));
-    },[])
+    },[api])
 
     const loadSources = useCallback((relId: number, dubId: number) => {
-        GetSources(relId, dubId)
+        GetSources(api, relId, dubId)
             .then(data => {
                 const sources: Source[] = data.sources || [];
                 setSourcesData(sources);
@@ -81,15 +83,15 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, auto
                         : undefined;
                     const sourceId = roomSource?.id ?? rememberedSource?.id ?? sources[0].id;
                     setSelectedSource(sourceId);
-                    loadEpisodes(relId, dubId, sourceId, token);
+                    loadEpisodes(relId, dubId, sourceId);
                 }
             })
             .catch(err => console.error(err));
-    }, [autoSelect, loadEpisodes, settings.content.rememberSource, settings.content.rememberedSourceId, token])
+    }, [api, autoSelect, loadEpisodes, settings.content.rememberSource, settings.content.rememberedSourceId])
     
     useEffect(() => {
         if (!isOpen) return;
-        GetDubs(releaseId)
+        GetDubs(api, releaseId)
             .then(data => {
                 const dubs: Dub[] = data.types || [];
                 setDubsData(dubs);
@@ -105,17 +107,17 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, auto
                 }
             })
             .catch(err => console.error(err))
-    }, [autoSelect, isOpen, loadSources, releaseId, settings.content.rememberDub, settings.content.rememberedDubId])
+    }, [api, autoSelect, isOpen, loadSources, releaseId, settings.content.rememberDub, settings.content.rememberedDubId])
 
     const selectEpisode = useCallback(async (episode: Episode, shouldMarkWatched: boolean) => {
-        if (shouldMarkWatched && token) await SetWatched(releaseId, selectedSource, episode.position, token);
+        if (shouldMarkWatched && token) await SetWatched(api, releaseId, selectedSource, episode.position);
         const sources = await extractVideoLinks(episode.url);
         if (sources) onEpisodeSelect(sources, {
             name: episode.name,
             position: episode.position,
             url: episode.url,
         }, episodesData.map(({ name, position, url }) => ({ name, position, url })), selectedSource, selectedDub);
-    }, [episodesData, onEpisodeSelect, releaseId, selectedDub, selectedSource, token]);
+    }, [api, episodesData, onEpisodeSelect, releaseId, selectedDub, selectedSource, token]);
 
     useEffect(() => {
         if (!isOpen || !autoSelect || selectedDub !== autoSelect.dubId || selectedSource !== autoSelect.sourceId) return;
@@ -168,7 +170,7 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, auto
                                     content: { ...previous.content, rememberedSourceId: sourceId },
                                 }));
                             }
-                            loadEpisodes(releaseId, selectedDub, sourceId, token)}}
+                            loadEpisodes(releaseId, selectedDub, sourceId)}}
                             disabled={sourcesData.length < 2}
                             style={{marginRight:'10px'}}
                             value={selectedSource}>
@@ -223,7 +225,7 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, auto
                     onClick: async () => {
                         if (!episodeToUnwatch) return;
                         try {
-                            await SetUnwatched(releaseId, selectedSource, episodeToUnwatch.position, token);
+                            await SetUnwatched(api, releaseId, selectedSource, episodeToUnwatch.position);
                             clearWatchProgress(releaseId, String(episodeToUnwatch.position));
                             setEpisodesData(previousEpisodes => previousEpisodes.map(episode =>
                                 episode.position === episodeToUnwatch.position
@@ -242,39 +244,30 @@ export default function DubSelectModal({ isOpen, onClose, releaseId, token, auto
 }
 
 
-async function GetDubs(id: number) {
-    const response = await fetch(`https://api-s.anixsekai.com/episode/${id}`)
-    if (response.ok) return response.json()
-    throw new Error("Failed to fetch avaliable dubs: " + response.status)
+type ApiClient = ReturnType<typeof useApi>;
+
+async function GetDubs(api: ApiClient, id: number) {
+    return api.get<{ code: number; types: Dub[] }>(`/episode/${id}`);
 }
 
-async function GetSources(releaseId: number, dubId: number){
-    const response = await fetch(`https://api-s.anixsekai.com/episode/${releaseId}/${dubId}`)
-    if (response.ok) return response.json()
-    throw new Error("Failed to fetch avaliable sources: " + response.status)
+async function GetSources(api: ApiClient, releaseId: number, dubId: number){
+    return api.get<{ code: number; sources: Source[] }>(`/episode/${releaseId}/${dubId}`);
 }
 
-async function GetEpisodes(releaseId: number, dubId:number, sourceId:number, token:string) {
-    const response = await fetch(`https://api-s.anixsekai.com/episode/${releaseId}/${dubId}/${sourceId}?token=${token}`)
-    if (response.ok) return response.json()
-    throw new Error("Failed to fetch avaliable episodes: " + response.status)
+async function GetEpisodes(api: ApiClient, releaseId: number, dubId:number, sourceId:number) {
+    return api.get<{ code: number; episodes: Episode[] }>(`/episode/${releaseId}/${dubId}/${sourceId}`);
 }
 
-async function SetWatched(releaseId:number, sourceId: number, position: number, token: string) {
-    const response = await fetch(`https://api-s.anixsekai.com/episode/watch/${releaseId}/${sourceId}/${position}?token=${token}`)
-    void AddToHistory(releaseId,sourceId,position,token)
-    if (response.ok) return response.json()
-    throw new Error("Failed to mark episode as watched: " + response.status)
+async function SetWatched(api: ApiClient, releaseId:number, sourceId: number, position: number) {
+    const result = await api.get<{ code: number }>(`/episode/watch/${releaseId}/${sourceId}/${position}`);
+    void AddToHistory(api, releaseId, sourceId, position);
+    return result;
 }
 
-async function SetUnwatched(releaseId:number, sourceId: number, position: number, token: string) {
-    const response = await fetch(`https://api-s.anixsekai.com/episode/unwatch/${releaseId}/${sourceId}/${position}?token=${token}`)
-    if (response.ok) return response.json()
-    throw new Error("Failed to mark episode as unwatched: " + response.status)
+async function SetUnwatched(api: ApiClient, releaseId:number, sourceId: number, position: number) {
+    return api.get<{ code: number }>(`/episode/unwatch/${releaseId}/${sourceId}/${position}`);
 }
 
-async function AddToHistory(releaseId:number, sourceId:number, position:number, token: string) {
-    const response = await fetch(`https://api-s.anixsekai.com/history/add/${releaseId}/${sourceId}/${position}?token=${token}`)  
-    if (response.ok) return response.json()
-        throw new Error("Failed to add episode to history: " + response.status)
+async function AddToHistory(api: ApiClient, releaseId:number, sourceId:number, position:number) {
+    return api.get<{ code: number }>(`/history/add/${releaseId}/${sourceId}/${position}`);
 }

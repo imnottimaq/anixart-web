@@ -96,6 +96,12 @@ export default function SettingsScreen(){
                     <ToggleSettingsItem title={t('settings.rememberDub')} desc={t('settings.rememberDub.desc')} checked={settings.content.rememberDub} onChange={rememberDub => updateContent({ rememberDub })}/>
                     <ToggleSettingsItem title={t('settings.rememberSource')} desc={t('settings.rememberSource.desc')} checked={settings.content.rememberSource} onChange={rememberSource => updateContent({ rememberSource })}/>
                     <ToggleSettingsItem title={t('settings.rememberTime')} desc={t('settings.rememberTime.desc')} checked={settings.content.rememberEpisodeTime} onChange={rememberEpisodeTime => updateContent({ rememberEpisodeTime })}/>
+                    <ToggleSettingsItem
+                        title="Проксировать поиск через Shikimori API"
+                        desc="Позволяет более точно искать аниме на английском языке, но занимает больше времени. Включайте только тогда, если у вас часто не работает поиск на английском."
+                        checked={settings.content.proxySearchThroughShikimori}
+                        onChange={proxySearchThroughShikimori => updateContent({ proxySearchThroughShikimori })}
+                    />
                 </section>
 
                 <section className={styles['settings-section']}>

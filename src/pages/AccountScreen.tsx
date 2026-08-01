@@ -15,6 +15,7 @@ import InstIcon from '../assets/icons/instagram.svg'
 import TtIcon from '../assets/icons/tiktok.svg'
 import ReleaseCard from "../components/ReleaseCard"
 import RemoteImage from '../components/RemoteImage'
+import { useApi } from '../shared/apiClient';
 
 interface ProfileAPIResponse{
     code: number;
@@ -24,6 +25,7 @@ interface ProfileAPIResponse{
 export default function AccountScreen(){
     const {id} = useParams<{id: string}>();
     const {userToken, userId} = useUser()
+    const api = useApi();
     const { setSearchScope } = useSearchScope();
     const { t } = useTranslation();
     const [userObject, setUserObject] = useState<Profile | null>(null);
@@ -57,7 +59,7 @@ export default function AccountScreen(){
 
         const loadProfile = async () => {
             try {
-                const data = await getProfile(profileId, userToken);
+                const data = await api.get<ProfileAPIResponse>(`/profile/${profileId}`);
                 const profile = data.profile;
                 if (!profile) throw new Error('Сервер вернул профиль без данных');
                 if (!isCancelled) setUserObject(profile);
@@ -71,9 +73,9 @@ export default function AccountScreen(){
         void loadProfile();
 
         return () => { isCancelled = true; };
-    }, [id, userId, userToken])
+    }, [api, id, userId, userToken])
 
-    const watchDynamic = userObject?.watch_dynamic?.slice(-10) ?? [];
+    const watchDynamic = userObject?.watch_dynamics?.slice(-10) ?? [];
     const maxValue = Math.max(...watchDynamic.map(({ count }) => count), 1);
 
     return (
@@ -176,12 +178,6 @@ export default function AccountScreen(){
         </div>
     )
 
-}
-
-async function getProfile(profileId:number, token:string): Promise<ProfileAPIResponse> {
-    const response = await fetch(`https://api-s.anixsekai.com/profile/${profileId}?token=${token}`)
-    if (response.ok) return response.json()
-    throw new Error("failed while fetching profile data: "+response.status)
 }
 
 function formatSeconds(totalSeconds:number) {

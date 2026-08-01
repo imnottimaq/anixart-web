@@ -10,6 +10,7 @@ import { useSettings } from '../shared/contexts/settingsContext';
 import { useSearchScope, type SearchScope } from '../shared/contexts/searchContext';
 import styles from './LatestReleasesScreen.module.css';
 import { useTranslation } from '../shared/useTranslation';
+import { useApi } from '../shared/apiClient';
 
 type ProfilePage = 'favorites' | 'history' | 'watching' | 'planned' | 'completed' | 'onHold' | 'dropped';
 
@@ -58,6 +59,7 @@ function createTabs(): Record<ProfilePage, TabData> {
 
 export default function FavoritesScreen() {
     const { userToken } = useUser();
+    const api = useApi();
     const navigate = useNavigate();
     const { settings } = useSettings();
     const { t } = useTranslation();
@@ -105,7 +107,7 @@ export default function FavoritesScreen() {
             },
         }));
 
-        getReleasesForTab(activePage, requestedPage, userToken, sort)
+        getReleasesForTab(activePage, requestedPage, sort, api)
             .then(newReleases => {
                 if (sortVersion !== sortVersionRef.current) return;
 
@@ -206,18 +208,15 @@ export default function FavoritesScreen() {
     );
 }
 
-async function getReleasesForTab(page: ProfilePage, currentPage: number, token: string, sort: ReleaseSort): Promise<Anime[]> {
-    const query = `extended_mode=true&token=${token}&sort=${API_SORT_VALUES[sort]}`;
-    const url = page === 'favorites'
-        ? `https://api-s.anixsekai.com/favorite/all/${currentPage}?${query}`
+async function getReleasesForTab(page: ProfilePage, currentPage: number, sort: ReleaseSort, api: ReturnType<typeof useApi>): Promise<Anime[]> {
+    const query = `extended_mode=true&sort=${API_SORT_VALUES[sort]}`;
+    const path = page === 'favorites'
+        ? `/favorite/all/${currentPage}?${query}`
         : page === 'history'
-            ? `https://api-s.anixsekai.com/history/${currentPage}?${query}`
-            : `https://api-s.anixsekai.com/profile/list/all/${PROFILE_LIST_IDS[page]}/${currentPage}?${query}`;
+            ? `/history/${currentPage}?${query}`
+            : `/profile/list/all/${PROFILE_LIST_IDS[page]}/${currentPage}?${query}`;
 
-    const response = await fetch(url);
-
-    if (!response.ok) throw new Error(`Не удалось загрузить список: ${response.status}`);
-    const data = await response.json();
+    const data = await api.get<{ code: number; content?: Array<Anime | { release: Anime }>; history?: Array<Anime | { release: Anime }> }>(path);
     const content = data.content ?? data.history ?? [];
     return content.map((item: Anime | { release: Anime }) => 'release' in item ? item.release : item);
 }
