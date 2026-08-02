@@ -83,6 +83,16 @@ function ConnectedRoom({ roomId }: { roomId: string }) {
     useEffect(() => { setActiveRoomId(roomId); }, [roomId, setActiveRoomId]);
 
     useEffect(() => {
+        const previousTitle = document.title;
+        const mediaTitle = room?.media
+            ? `${room.media.releaseName} · ${room.media.episodeName}`
+            : room?.title ?? 'Совместный просмотр';
+
+        document.title = `${mediaTitle} — Anixart`;
+        return () => { document.title = previousTitle; };
+    }, [room?.media, room?.title]);
+
+    useEffect(() => {
         if (userId <= 0) { setMessage('Войдите в аккаунт, чтобы подключиться к комнате'); return; }
         socketRef.current.connect(roomId, getRoomParticipant(userId), state => { setRoom(state); setMessage(''); }, setMessage, () => {
             setActiveRoomId(null);

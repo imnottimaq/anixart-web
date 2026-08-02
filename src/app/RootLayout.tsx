@@ -31,7 +31,7 @@ export default function RootLayout() {
         <header className={styles.header}>
           <Link to="/" className={`${styles['nav-link']} ${styles['nav-logo-block']}`}>
               <img src="https://anixart-app.com/assets/images/logo.svg?v2" alt="Anixart" />
-              <p>Anixart</p>
+              <p>Anixweb</p>
             </Link>  
           <nav className={styles.navigation}>
             <Link to="/" className={styles['nav-link']}>{t('nav.home')}</Link>

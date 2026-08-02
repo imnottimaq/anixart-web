@@ -110,6 +110,14 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
     const upscaleCanvasRef = useRef<HTMLCanvasElement>(null);
     const controlsTimeoutRef = useRef<number | null>(null);
     const { sources, animeId, animeName, episodeNumber, episodeName } = playerSession;
+
+    useEffect(() => {
+        const previousTitle = document.title;
+        const episodeTitle = episodeName || `Серия ${episodeNumber}`;
+        document.title = `${animeName} · ${episodeTitle} — Anixart`;
+
+        return () => { document.title = previousTitle; };
+    }, [animeName, episodeName, episodeNumber]);
     const qualities = useMemo(
         () => Object.keys(sources).sort((a, b) => (Number(b) || 0) - (Number(a) || 0)),
         [sources]
