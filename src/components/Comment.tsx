@@ -7,14 +7,15 @@ import arrowDownIcon from '../assets/icons/arrow-down.svg'
 import { useEffect, useState } from 'react'
 import { useUser } from '../shared/contexts/userContext'
 import { Modal } from '../modals/ModalTemplate'
-import { type Comment } from '../shared/types/api'
+import { type Comment, type PagedResponse } from '../shared/types/api'
 import RemoteImage from './RemoteImage'
 import { useTranslation } from '../shared/useTranslation';
 import { useApi } from '../shared/apiClient'
+import { useNavigate } from 'react-router-dom'
 
 export interface CommentProps {
     comment: Comment,
-    releaseId: number,
+    releaseId: number,  
     onReply: (comment: Comment) => void,
     onEdit: (comment: Comment) => void,
     newReply?: { parentCommentId: number; comment: Comment } | null,
@@ -24,6 +25,7 @@ export interface CommentProps {
 export default function CommentComponent({ comment, releaseId, onReply, onEdit, newReply, editedComment }: CommentProps) {
     const { t } = useTranslation();
     const api = useApi();
+    const navigate = useNavigate();
     const [isRepliesShown, setIsRepliesShown] = useState(false);
     const userToken = useUser()
     const [replies, setReplies] = useState<Comment[]>([]);
@@ -83,7 +85,7 @@ export default function CommentComponent({ comment, releaseId, onReply, onEdit, 
         const appendReply = async () => {
             setIsLoading(true);
             try {
-                const existingReplies = await api.get<{code: number, content: Comment[], total_count: number, total_page_count: number}>
+                const existingReplies = await api.get<PagedResponse<Comment>>
                 (`release/comment/replies/${comment.id}/0?sort=2`)
                 if (isCancelled) return;
 
@@ -112,7 +114,7 @@ export default function CommentComponent({ comment, releaseId, onReply, onEdit, 
         if (replies.length === 0) {
             setIsLoading(true);
             try {
-                const fetchedReplies = await api.get<{code: number, content: Comment[], total_count: number, total_page_count: number}>
+                const fetchedReplies = await api.get<PagedResponse<Comment>>
                 (`release/comment/replies/${comment.id}/0?sort=2`)
                 setReplies(fetchedReplies.content);
                 setIsRepliesShown(true);
@@ -128,10 +130,10 @@ export default function CommentComponent({ comment, releaseId, onReply, onEdit, 
         <>
         <div className={styles["comment"]}>
             <div className={styles['comment-header']}>
-                <RemoteImage src={comment.profile.avatar} className={styles['avatar']} alt="" />
+                <RemoteImage src={comment.profile.avatar} className={styles['avatar']} onClick={() => navigate(`/account/${comment.profile.id}`)} />
                 <div className={styles['author-info']}>
                     <div className={styles['author-line']}>
-                        <strong>{comment.profile.login}</strong>
+                        <strong onClick={() => navigate(`/account/${comment.profile.id}`)}>{comment.profile.login}</strong>
                         {comment.profile.is_verified && <img src={verifiedBadge} className={styles['verified-badge']} alt="" />}
                         <time>{formatCustomDate(comment.timestamp)}</time>
                     </div>

@@ -16,10 +16,12 @@ import TtIcon from '../assets/icons/tiktok.svg'
 import ReleaseCard from "../components/ReleaseCard"
 import RemoteImage from '../components/RemoteImage'
 import { useApi } from '../shared/apiClient';
+import { Modal } from '../modals/ModalTemplate';
 
 interface ProfileAPIResponse{
     code: number;
     profile: Profile;
+    is_my_profile: boolean;
 }
 
 export default function AccountScreen(){
@@ -29,7 +31,11 @@ export default function AccountScreen(){
     const { setSearchScope } = useSearchScope();
     const { t } = useTranslation();
     const [userObject, setUserObject] = useState<Profile | null>(null);
+    const [isMyProfile, setIsMyProfile] = useState<boolean | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [isFriendActionLoading, setIsFriendActionLoading] = useState(false);
+    const [friendActionError, setFriendActionError] = useState<string | null>(null);
+    const [isCancelRequestModalOpen, setIsCancelRequestModalOpen] = useState(false);
 
     const navigate = useNavigate()
     useEffect(() => {
@@ -61,6 +67,7 @@ export default function AccountScreen(){
             try {
                 const data = await api.get<ProfileAPIResponse>(`/profile/${profileId}`);
                 const profile = data.profile;
+                setIsMyProfile(data.is_my_profile)
                 if (!profile) throw new Error('Сервер вернул профиль без данных');
                 if (!isCancelled) setUserObject(profile);
             } catch (error) {
@@ -78,27 +85,96 @@ export default function AccountScreen(){
     const watchDynamic = userObject?.watch_dynamics?.slice(-10) ?? [];
     const maxValue = Math.max(...watchDynamic.map(({ count }) => count), 1);
 
+    const handleFriendAction = async () => {
+        if (!userObject || isFriendActionLoading) return false;
+
+        const status = userObject.friend_status;
+        const isRemoval = status === 0 || status === 2;
+        const endpoint = isRemoval
+            ? `/profile/friend/request/remove/${userObject.id}`
+            : `/profile/friend/request/send/${userObject.id}`;
+        const nextStatus = status === 2 ? 1 : status === 0 ? null : status === 1 ? 2 : 0;
+
+        setIsFriendActionLoading(true);
+        setFriendActionError(null);
+
+        try {
+            await api.get<{ code: number }>(endpoint);
+        } catch {
+            try {
+                await api.getViaAgent<{ code: number }>(endpoint);
+            } catch {
+                setFriendActionError('Не удалось обновить заявку в друзья');
+                setIsFriendActionLoading(false);
+                return false;
+            }
+        }
+
+        setUserObject(previous => previous ? { ...previous, friend_status: nextStatus } : previous);
+        setIsFriendActionLoading(false);
+        return true;
+    };
+
+    const getFriendActionLabel = () => {
+        if (isFriendActionLoading) return 'Загрузка…';
+        if (userObject?.friend_status === 0) return 'Отменить заявку';
+        if (userObject?.friend_status === 1) return 'Добавить в друзья';
+        if (userObject?.friend_status === 2) return 'Друзья';
+        return 'Добавить в друзья';
+    };
+
     return (
         <div className={styles['body']}>
             <div className={styles['profile-grid']}>
                 <div className={styles['profile-card']}>
-                    <div className={styles['user-short']}>
-                        <RemoteImage src={userObject?.avatar} />
-                        <div className={styles['user-info']}>
-                            <div className={styles['user-name-row']}>
-                                <p>{userObject?.login}</p>
-                                <span className={styles['rating']}>{userObject?.rating_score}</span>
+                    <div className="flex-row">
+                        <div className="flex-column">
+                            <div className={styles['user-short']}>
+                                <RemoteImage src={userObject?.avatar} />
+                                <div className={styles['user-info']}>
+                                    <div className={styles['user-name-row']}>
+                                        <p>{userObject?.login}</p>
+                                        <span className={styles['rating']}>{userObject?.rating_score}</span>
+                                    </div>
+                                    <p>{userObject?.status}</p>
+                                </div>
                             </div>
-                            <p>{userObject?.status}</p>
+                            <div className={styles['user-socials']}>
+                                {userObject?.vk_page && <a className={styles['vk']} href={"https://vk.com/" + userObject?.vk_page}><img className={styles['social-icon']} src={VkIcon}/></a>}
+                                {userObject?.tg_page && <a className={styles['tg']} href={"https://t.me/" + userObject?.tg_page}><img className={styles['social-icon']} src={TgIcon}/></a>}
+                                {userObject?.discord_page && <a className={styles['discord']}><img className={styles['social-icon']} src={DiscordIcon}/></a>}
+                                {userObject?.inst_page && <a className={styles['inst']} href={"https://instagram.com/" + userObject?.inst_page}><img className={styles['social-icon']} src={InstIcon}/></a>}
+                                {userObject?.tt_page && <a className={styles['tt']} href={"https://tiktok.com/@" + userObject?.tt_page}><img className={styles['social-icon']} src={TtIcon}/></a>}
+                            </div>
+                            <div className={styles['user-roles']}>
+                                {userObject?.roles?.map(role => {
+                                    const color = role.color.startsWith('#') ? role.color : `#${role.color}`;
+                                    return <div key={`${role.name}-${role.color}`} style={{ borderColor: color, color }} className={styles.role}>
+                                        <span className={styles.circle} style={{ backgroundColor: color }} />
+                                        <span>{role.name}</span>
+                                    </div>;
+                                })}
+                            </div>
                         </div>
+
+                        {isMyProfile && <button type="button" className={styles['edit-button']} onClick={() => navigate('/account/edit')}>Редактировать</button>}
+                        {!isMyProfile && <div className={styles['friend-action']}>
+                            <button
+                                type="button"
+                                className={`${styles['friend-button']} ${styles[`friend-status-${userObject?.friend_status ?? 'none'}`]}`}
+                                disabled={isFriendActionLoading}
+                                onClick={() => {
+                                    if (userObject?.friend_status === 0 || userObject?.friend_status === 2) setIsCancelRequestModalOpen(true);
+                                    else void handleFriendAction();
+                                }}
+                            >
+                                {getFriendActionLabel()}
+                            </button>
+                            {userObject?.friend_status === 1 && <span className={styles['friend-request-notice']}>Отправил(а) вам заявку в друзья</span>}
+                            {friendActionError && <span>{friendActionError}</span>}
+                        </div>}
                     </div>
-                    <div className={styles['user-socials']}>
-                        {userObject?.vk_page && <a className={styles['vk']} href={"https://vk.com/" + userObject?.vk_page}><img className={styles['social-icon']} src={VkIcon}/></a>}
-                        {userObject?.tg_page && <a className={styles['tg']} href={"https://t.me/" + userObject?.tg_page}><img className={styles['social-icon']} src={TgIcon}/></a>}
-                        {userObject?.discord_page && <a className={styles['discord']}><img className={styles['social-icon']} src={DiscordIcon}/></a>}
-                        {userObject?.inst_page && <a className={styles['inst']} href={"https://instagram.com/" + userObject?.inst_page}><img className={styles['social-icon']} src={InstIcon}/></a>}
-                        {userObject?.tt_page && <a className={styles['tt']} href={"https://tiktok.com/@" + userObject?.tt_page}><img className={styles['social-icon']} src={TtIcon}/></a>}
-                    </div>     
+                    
                     <div className={styles['stat-number-div']}>
                         <div className={styles['stat-number']}>
                             <p>{userObject?.comment_count}</p>
@@ -157,7 +233,7 @@ export default function AccountScreen(){
                 <div>
                     <h2>{t('account.releaseRating')}</h2>
                         {userObject?.votes.map(item => 
-                        <ReleaseCard key={item.id} variant="rated" name={item.title_ru} 
+                        <ReleaseCard key={item.id} variant="rated" id={item.id} name={item.title_ru} 
                             poster={item.image} 
                             grade={item.my_vote} 
                             timestamp={item.voted_at}/>
@@ -166,14 +242,36 @@ export default function AccountScreen(){
                 <div>
                     <h2>{t('account.watchedRecently')}</h2>
                         {userObject?.history.map(item => 
-                        <ReleaseCard key={item.id} variant="history" name={item.title_ru}
+                        <ReleaseCard key={item.id} variant="history" id={item.id} name={item.title_ru}
                             poster={item.image}
                             grade={item.last_view_episode?.position ?? 0}
                             timestamp={item.last_view_timestamp}
                             />
                     )}
-                </div>
             </div>
+            <Modal
+                isOpen={isCancelRequestModalOpen}
+                onClose={() => setIsCancelRequestModalOpen(false)}
+                title={userObject?.friend_status === 2 ? 'Удалить из друзей?' : 'Отменить заявку в друзья?'}
+            >
+                {close => <>
+                    <p className={styles['confirm-text']}>{userObject?.friend_status === 2
+                        ? 'Пользователь будет удалён из списка ваших друзей.'
+                        : 'Пользователь больше не увидит вашу заявку в друзья.'}</p>
+                    <div className={styles['confirm-actions']}>
+                        <button type="button" onClick={close}>Назад</button>
+                        <button
+                            type="button"
+                            className={styles['confirm-danger']}
+                            disabled={isFriendActionLoading}
+                            onClick={() => void handleFriendAction().then(isSuccess => { if (isSuccess) close(); })}
+                        >
+                            {userObject?.friend_status === 2 ? 'Удалить из друзей' : 'Отменить заявку'}
+                        </button>
+                    </div>
+                </>}
+            </Modal>
+        </div>
             {isLoading && <div className={styles['loading-overlay']} />}
         </div>
     )

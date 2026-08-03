@@ -25,15 +25,34 @@ export default function NotificationsScreen() {
 
     useEffect(() => {
         let cancelled = false;
+        let wasMarkedAsRead = false;
         setIsLoading(true);
         setError(null);
 
+        const markAsRead = api.get<{ code: number }>('/notification/read')
+            .catch(() => api.getViaAgent<{ code: number }>('/notification/read'))
+            .then(() => {
+                wasMarkedAsRead = true;
+                if (!cancelled) {
+                    setNotifications(current => current.map(notification => ({ ...notification, is_new: false })));
+                }
+            })
+            .catch(() => undefined);
+
         void api.get<{ code: number; content: AnixartNotification[] }>('/notification/all/0')
-            .then(data => { if (!cancelled) setNotifications(data.content); })
+            .then(data => {
+                if (!cancelled) {
+                    setNotifications(wasMarkedAsRead
+                        ? data.content.map(notification => ({ ...notification, is_new: false }))
+                        : data.content);
+                }
+            })
             .catch(requestError => {
                 if (!cancelled) setError(requestError instanceof Error ? requestError.message : 'Не удалось загрузить уведомления');
             })
             .finally(() => { if (!cancelled) setIsLoading(false); });
+
+        void markAsRead;
 
         return () => { cancelled = true; };
     }, [api]);

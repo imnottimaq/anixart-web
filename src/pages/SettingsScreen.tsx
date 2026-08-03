@@ -102,6 +102,12 @@ export default function SettingsScreen(){
                         checked={settings.content.proxySearchThroughShikimori}
                         onChange={proxySearchThroughShikimori => updateContent({ proxySearchThroughShikimori })}
                     />
+                    <ToggleSettingsItem
+                        title={t('settings.proxyImages')}
+                        desc={t('settings.proxyImages.desc')}
+                        checked={settings.content.proxyImages}
+                        onChange={proxyImages => updateContent({ proxyImages })}
+                    />
                 </section>
 
                 <section className={styles['settings-section']}>

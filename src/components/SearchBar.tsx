@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import styles from "./SearchBar.module.css"
-import { type Anime } from "../shared/types/api";
+import { type Anime, type PagedResponse } from "../shared/types/api";
 import { useNavigate } from "react-router-dom";
 import { useSettings } from "../shared/contexts/settingsContext";
 import { useSearchScope, type SearchScope } from "../shared/contexts/searchContext";
@@ -18,6 +18,7 @@ interface ReleaseSearchResponse{
     name: string,
     name_ru: string,
     description: string,
+    image?: string,
     images: string[],
     release_count: number,
   }
@@ -32,13 +33,7 @@ interface SearchProfile {
     rating_score: number | null;
 }
 
-interface ProfileSearchResponse {
-    code: number;
-    profiles: SearchProfile[];
-    total_count: number;
-    total_page_count: number;
-    current_page: number;
-}
+type ProfileSearchResponse = PagedResponse<SearchProfile> & { profiles: SearchProfile[] };
 
 type SearchResults = ReleaseSearchResponse | ProfileSearchResponse;
 
@@ -125,9 +120,12 @@ export default function SearchButton(){
             {isSearchOpen && <div className={styles['search-overlay']}>
                 <div className={styles['search-content']}>
                     {isLoading && <p className={styles.message}>{t('search.waiting')}</p>}
-                    {!isLoading && releaseResults?.related && <button type="button" className={styles['related-release']} onClick={() => navigate(`/franchise/${releaseResults.related?.id || 0}`)}>
+                    {!isLoading && releaseResults?.related && <button type="button" className={styles['related-release']} onClick={() => {
+                        clearSearch();
+                        navigate(`/franchise/${releaseResults.related?.id || 0}`, { state: { franchise: releaseResults.related } });
+                    }}>
                         <span className={styles['related-posters']} aria-hidden="true">
-                            {releaseResults.related.images.slice(0, 3).map((image) => (
+                            {[...releaseResults.related.images].slice(0, 3).reverse().map((image) => (
                                 <RemoteImage key={image} src={image} alt="" />
                             ))}
                         </span>
@@ -200,9 +198,11 @@ async function GetSearchResults(
     }>(endpoint, { query: searchQuery, searchBy: 0 }, { 'Api-Version': 'v2' });
     if (data.code === 0) {
         if (searchScope.type === 'profiles') {
+            const profiles = (data.profiles ?? data.content ?? []) as SearchProfile[];
             return {
                 code: data.code,
-                profiles: (data.profiles ?? data.content ?? []) as SearchProfile[],
+                content: profiles,
+                profiles,
                 total_count: data.total_count ?? 0,
                 total_page_count: data.total_page_count ?? 0,
                 current_page: data.current_page ?? 0,

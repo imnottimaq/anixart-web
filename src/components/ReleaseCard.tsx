@@ -3,6 +3,7 @@ import { type Anime } from '../shared/types/api';
 import styles from './ReleaseCard.module.css';
 import starIcon from '../assets/icons/star.svg';
 import RemoteImage from './RemoteImage';
+import { useSettings } from '../shared/contexts/settingsContext';
 
 type RelatedReleaseCardProps = {
     variant: 'related';
@@ -11,6 +12,7 @@ type RelatedReleaseCardProps = {
 
 type ProfileReleaseCardProps = {
     variant: 'rated' | 'history';
+    id: number;
     name: string;
     poster: string;
     grade: number;
@@ -20,8 +22,13 @@ type ProfileReleaseCardProps = {
 type ReleaseCardProps = RelatedReleaseCardProps | ProfileReleaseCardProps;
 
 export default function ReleaseCard(props: ReleaseCardProps) {
+    const { settings } = useSettings();
     const isRelated = props.variant === 'related';
-    const name = isRelated ? props.anime.title_ru : props.name;
+    const name = isRelated
+        ? (settings.appearance.language === 'english' && props.anime.title_original
+            ? props.anime.title_original
+            : props.anime.title_ru)
+        : props.name;
     const poster = isRelated ? props.anime.image : props.poster;
 
     const content = (
@@ -49,9 +56,9 @@ export default function ReleaseCard(props: ReleaseCardProps) {
         </article>
     );
 
-    return isRelated
-        ? <Link to={`/anime/${props.anime.id}`} className={styles.link}>{content}</Link>
-        : content;
+    const releaseId = isRelated ? props.anime.id : props.id;
+
+    return <Link to={`/anime/${releaseId}`} className={styles.link}>{content}</Link>;
 }
 
 function formatTimestamp(timestamp: number) {

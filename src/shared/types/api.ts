@@ -45,6 +45,7 @@ export interface Anime {
   dropped_count: number;
   is_favorite: boolean;
   my_vote: number;
+  comment_per_day_count: number;
 }
 
 export interface Comment {
@@ -55,7 +56,8 @@ export interface Comment {
     vote_count: number,
     is_spoiler: boolean,
     vote: number,
-    reply_count: number
+    reply_count: number,
+    release: Anime
 }
 
 export interface Filter {
@@ -117,7 +119,11 @@ export interface Profile {
     count: number;
     timestamp: number;
   }];
-
+  roles: [{
+    name: string;
+    color: string;
+  }]
+  friend_status: number | null; // null - ничего, 0 - вы отправили запрос дружбы, 1 - вам отправили запрос дружбы, 2 - друзья
 
   // TODO: расширить
 }
@@ -164,21 +170,18 @@ export interface AllDubbersAPIResponse {
   types: Dub[]
 }
 
-export interface ReleaseNotificationsPreferencesAPIResponse { // https://api-s.anixsekai.com/profile/preference/notification/release/all/{page}?token=
+export interface PagedResponse<TContent> {
   code: number;
-  content: AnimeWithSelectedDub[];
-  total_count: number;
-  total_page_count: number;
-  current_page: number
-}
-
-export interface NotificationsPagedResponse<TNotification> {
-  code: number;
-  content: TNotification[];
+  content: TContent[];
   total_count: number;
   total_page_count: number;
   current_page: number;
 }
+
+export type ReleaseNotificationsPreferencesAPIResponse = PagedResponse<AnimeWithSelectedDub>;
+
+/** @deprecated Используй PagedResponse<T>. */
+export type NotificationsPagedResponse<TNotification> = PagedResponse<TNotification>;
 
 export type AllNotificationsAPIResponse = NotificationsPagedResponse<AnixartNotification>;
 
@@ -246,3 +249,14 @@ export type AnixartNotification =
   | ArticleNotification
   | ReleaseCommentNotification
   | CollectionCommentNotification;
+
+export interface DiscoverInteresting{
+  id: number,
+  title: string,
+  description: string,
+  image: string,
+  type: number,
+  action: number, // id релиза
+}
+
+

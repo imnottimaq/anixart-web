@@ -131,6 +131,7 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
         ? requestedQuality
         : qualities[0];
     const [isPlaying, setIsPlaying] = useState(false);
+    const [isBuffering, setIsBuffering] = useState(true);
     const [isMaximized, setIsMaximized] = useState(false);
     const [isMuted, setIsMuted] = useState(false);
     const [isVolumeDivExpanded, setIsVolumeDivExpanded] = useState(false);
@@ -339,6 +340,7 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
         setBufferedTime(0);
         setResumePromptTime(null);
         setStreamError(null);
+        setIsBuffering(true);
 
         const isHls = stream.type === HLS_MIME_TYPE || stream.src.includes('.m3u8') || stream.src.includes(':hls:');
         let hls: Hls | undefined;
@@ -352,6 +354,7 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
 
             if (!switchToLowerQuality()) {
                 setStreamError(t('player.streamUnavailable'));
+                setIsBuffering(false);
                 hls?.destroy();
             }
         };
@@ -513,12 +516,14 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
                             <button
                                 type="button"
                                 className={styles['play-button']}
+                                disabled={isBuffering}
+                                aria-label={isBuffering ? 'Видео загружается' : isPlaying ? 'Пауза' : 'Воспроизвести'}
                                 onClick={() => {
                                     if (videoRef.current?.paused) void videoRef.current.play();
                                     else videoRef.current?.pause();
                                 }}
                             >
-                                <img src={isPlaying ? PauseIcon : PlayIcon} />
+                                {isBuffering ? <span className={styles.spinner} aria-hidden="true" /> : <img src={isPlaying ? PauseIcon : PlayIcon} />}
                             </button>
                             <button type="button" className={styles['next-prev-buttons']} disabled={!nextEpisode || isEpisodeChanging} onClick={() => nextEpisode && void changeEpisode(nextEpisode)}><img src={NextIcon} /></button>
                         </div>
@@ -693,10 +698,15 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
                     ref={videoRef}
                     preload="auto"
                     crossOrigin="anonymous"
+                    onLoadStart={() => setIsBuffering(true)}
+                    onWaiting={() => setIsBuffering(true)}
+                    onStalled={() => setIsBuffering(true)}
+                    onCanPlay={() => setIsBuffering(false)}
                     onPlay={event => {
                         setIsPlaying(true);
                         sendRoomPlayback('play', event.currentTarget.currentTime);
                     }}
+                    onPlaying={() => setIsBuffering(false)}
                     onPause={event => {
                         setIsPlaying(false);
                         sendRoomPlayback('pause', event.currentTarget.currentTime);
@@ -746,6 +756,7 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
                         }
                     }}
                     onDurationChange={event => setDuration(event.currentTarget.duration)}
+                    onError={() => setIsBuffering(false)}
                     onProgress={event => setBufferedTime(getBufferedEnd(event.currentTarget))}
                     onTimeUpdate={event => setCurrentTime(event.currentTarget.currentTime)}
                     onVolumeChange={event => {

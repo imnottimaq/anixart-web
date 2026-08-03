@@ -1,0 +1,354 @@
+.body {
+    width: min(860px, 100%);
+    box-sizing: border-box;
+    margin: 0 auto;
+    padding: 42px 28px 72px;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    margin-bottom: 34px;
+}
+
+.header h1 {
+    margin: 0;
+    color: var(--text-color);
+    font-size: clamp(28px, 3vw, 38px);
+    line-height: 1.1;
+}
+
+.header p {
+    margin: 7px 0 0;
+    color: var(--text-secondary);
+}
+
+.backButton {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    padding: 0;
+    border: 0;
+    color: var(--text-color);
+    background: transparent;
+    font-size: 29px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+.section { margin-top: 48px; }
+.section:first-of-type { margin-top: 0; }
+
+.section h2 {
+    margin: 0 0 12px;
+    color: var(--text-color);
+    font-size: clamp(26px, 2.5vw, 34px);
+}
+
+.sectionDescription {
+    margin: 0 0 6px;
+    color: var(--text-secondary);
+    line-height: 1.45;
+}
+
+.avatarSetting {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 76px;
+    padding: 10px 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--text-color) 13%, transparent);
+    color: var(--text-color);
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.avatarSetting > span {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.avatarSetting small {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.avatarControl {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.avatarControl img {
+    width: 208px;
+    height: 208px;
+    border: 1px solid var(--border-color);
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.avatarControl button {
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    color: var(--text-color);
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+}
+
+.field,
+.selectField {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    min-height: 64px;
+    padding: 10px 0;
+    border-bottom: 1px solid color-mix(in srgb, var(--text-color) 13%, transparent);
+    color: var(--text-color);
+    font-size: 17px;
+    font-weight: 600;
+}
+
+.field { flex-wrap: wrap; }
+
+.field > span,
+.selectField > span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.field > span small,
+.fieldHint {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+.field input,
+.field textarea,
+.selectField select {
+    box-sizing: border-box;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    color: var(--text-color);
+    background: var(--background-color);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 400;
+}
+
+.field input,
+.selectField select {
+    width: min(310px, 45vw);
+    min-height: 40px;
+    padding: 0 10px;
+}
+
+.field textarea {
+    width: min(310px, 45vw);
+    min-height: 74px;
+    padding: 10px;
+    resize: vertical;
+}
+
+.field input:focus-visible,
+.field textarea:focus-visible,
+.selectField select:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.loginControl {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.loginControl input { width: min(220px, 30vw); }
+
+.loginControl button,
+.saveButton {
+    min-height: 40px;
+    padding: 0 15px;
+    border: 0;
+    border-radius: 9px;
+    color: var(--background-color);
+    background: var(--accent-color);
+    font: inherit;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.loginControl button:disabled,
+.saveButton:disabled,
+.accountActions button:disabled,
+.selectField select:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+}
+
+.loginControl + .fieldHint {
+    flex: 0 1 100%;
+    margin-left: auto;
+    text-align: right;
+}
+
+.accountActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 16px 0 0;
+}
+
+.accountActions button {
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    color: var(--text-color);
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+}
+
+.fieldsGrid,
+.privacyGrid { display: block; }
+
+.footer {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 38px;
+}
+
+.footer span {
+    margin-right: auto;
+    color: var(--status-watching);
+    font-size: 14px;
+}
+
+.footer .error { color: var(--status-dropped); }
+
+.modalForm {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.modalForm > p {
+    margin: 0;
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.modalForm > small {
+    color: var(--text-secondary);
+    line-height: 1.4;
+}
+
+.modalForm label {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    color: var(--text-color);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.modalForm input {
+    box-sizing: border-box;
+    width: 100%;
+    min-height: 42px;
+    padding: 0 11px;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    color: var(--text-color);
+    background: var(--background-color);
+    font: inherit;
+    font-weight: 400;
+}
+
+.modalForm input:focus-visible {
+    outline: 2px solid var(--accent-color);
+    outline-offset: 2px;
+}
+
+.codeRow {
+    display: flex;
+    gap: 9px;
+}
+
+.codeRow button,
+.modalActions button {
+    min-height: 40px;
+    padding: 0 14px;
+    border: 1px solid var(--border-color);
+    border-radius: 9px;
+    color: var(--text-color);
+    background: transparent;
+    font: inherit;
+    cursor: pointer;
+}
+
+.codeRow button,
+.modalActions button:last-child {
+    border-color: transparent;
+    color: var(--background-color);
+    background: var(--accent-color);
+    font-weight: 600;
+}
+
+.codeRow button:disabled,
+.modalActions button:disabled {
+    cursor: not-allowed;
+    opacity: .55;
+}
+
+.modalError {
+    margin: 0;
+    color: var(--status-dropped) !important;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 4px;
+}
+
+@media (max-width: 560px) {
+    .body { padding: 28px 16px 48px; }
+    .header { align-items: flex-start; margin-bottom: 28px; }
+    .section { margin-top: 40px; }
+    .field,
+    .selectField { align-items: flex-start; flex-direction: column; gap: 12px; }
+    .avatarSetting { align-items: flex-start; flex-direction: column; gap: 12px; }
+    .field input,
+    .field textarea,
+    .selectField select,
+    .loginControl { width: 100%; }
+    .loginControl input { width: 100%; }
+    .field textarea { min-height: 90px; }
+    .loginControl button { flex: 0 0 auto; }
+    .loginControl + .fieldHint { margin-left: 0; text-align: left; }
+    .accountActions { justify-content: stretch; }
+    .accountActions button { flex: 1; }
+    .footer { align-items: stretch; flex-direction: column; }
+    .footer span { margin-right: 0; }
+    .codeRow,
+    .modalActions { flex-direction: column; }
+    .codeRow button,
+    .modalActions button { width: 100%; }
+}

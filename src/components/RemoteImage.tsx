@@ -1,4 +1,5 @@
 import { useState, type ComponentProps } from 'react';
+import { useSettings } from '../shared/contexts/settingsContext';
 
 type RemoteImageProps = Omit<ComponentProps<'img'>, 'src'> & {
     src?: string | null;
@@ -20,18 +21,20 @@ function getOptimizedUrl(url: string) {
 }
 
 export default function RemoteImage({ src, onError, ...props }: RemoteImageProps) {
+    const { settings } = useSettings();
     const [failedSource, setFailedSource] = useState<string | null>(null);
     const originalUrl = src ? normalizeUrl(src) : '';
     const mirrorUrl = originalUrl.includes('s.anixmirai.com/') ? getMirrorUrl(originalUrl) : null;
     const isUsingMirror = failedSource === originalUrl;
+    const useImageProxy = settings.content.proxyImages;
 
     if (!originalUrl) return null;
 
     return <img
         {...props}
-        src={isUsingMirror && mirrorUrl ? mirrorUrl : getOptimizedUrl(originalUrl)}
+        src={isUsingMirror && mirrorUrl ? mirrorUrl : useImageProxy ? getOptimizedUrl(originalUrl) : originalUrl}
         onError={event => {
-            if (!isUsingMirror && mirrorUrl) {
+            if (!isUsingMirror && mirrorUrl && !useImageProxy) {
                 setFailedSource(originalUrl);
                 return;
             }

@@ -136,6 +136,21 @@
     filter: invert(72%);
 }
 
+.play-button:disabled {
+    cursor: wait;
+}
+
+.spinner {
+    width: 19px;
+    height: 19px;
+    margin: auto;
+    border: 2px solid rgb(255 255 255 / 28%);
+    border-top-color: rgb(255 255 255 / 88%);
+    border-radius: 50%;
+    box-sizing: border-box;
+    animation: player-spinner 700ms linear infinite;
+}
+
 .next-prev-buttons {
     display: flex;
     width: 36px;
@@ -470,6 +485,10 @@
     to { opacity: 1; }
 }
 
+@keyframes player-spinner {
+    to { transform: rotate(360deg); }
+}
+
 @keyframes player-in {
     from { opacity: 0; transform: scale(.985); }
     to { opacity: 1; transform: scale(1); }
@@ -515,6 +534,10 @@
     .action-btn,
     .back-button {
         transition: none;
+    }
+
+    .spinner {
+        animation: none;
     }
 }
 

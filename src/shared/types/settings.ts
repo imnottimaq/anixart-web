@@ -20,6 +20,7 @@ export interface AppSettings {
         rememberedDubId: number | null;
         rememberEpisodeTime: boolean;
         proxySearchThroughShikimori: boolean;
+        proxyImages: boolean;
     }
     appearance:{
         theme: 'light' | 'dark';
@@ -27,24 +28,15 @@ export interface AppSettings {
         defaultCardType: 'vertical' | 'horizontal';
     }
     notifications:{
-        recieveNotifications: boolean; // https://api-s.anixsekai.com/profile/preference/notification/episode/edit?token= для переключения
-        notificationsType: 'all' | 'selected_lists' | 'selected_releases' | null /* https://api-s.anixsekai.com/profile/preference/notification/status/edit?token= для изменения
-        {
-            "profileStatusNotificationPreferences": [0,1,2,3,4,5]
-        }  для 'all',
-        {
-            "profileStatusNotificationPreferences": [0, 1, 2.. ] д
-        } для 'selected_lists',
-        https://api-s.anixsekai.com/profile/preference/notification/selected/releases/edit?token= для 'selected_releases'
-            */
+        recieveNotifications: boolean;
+        notificationsType: 'all' | 'selected_lists' | 'selected_releases' | null 
         selectedLists: string[] | null;
         selectedDubs: Dub[] | null;
         selectedReleases: Anime[] | null;
-        getOnlyOneNotification: boolean;  /*Если выбрана больше чем одна озвучка, уведомление придет только от той, которая быстрее всего выпустит серию
-        https://api-s.anixsekai.com/profile/preference/notification/episode/first/edit?token= для переключания*/
-        notificationOnRelatedRelease: boolean; //https://api-s.anixsekai.com/profile/preference/notification/related/release/edit?token= для переключения 
-        repliesNotifications: boolean; // https://api-s.anixsekai.com/profile/preference/notification/comment/edit?token= для переключения
-        commentsOnCollectionNotification: boolean; // https://api-s.anixsekai.com/profile/preference/notification/my/collection/comment/edit?token= для переключения
+        getOnlyOneNotification: boolean;
+        notificationOnRelatedRelease: boolean;
+        repliesNotifications: boolean;
+        commentsOnCollectionNotification: boolean;
     }
 }
 
@@ -67,6 +59,7 @@ export const defaultAppSettings:AppSettings = {
         rememberedDubId: null,
         rememberEpisodeTime: false,
         proxySearchThroughShikimori: false,
+        proxyImages: false,
     },
     appearance:{
         theme: 'light',

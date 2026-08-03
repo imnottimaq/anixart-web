@@ -5,7 +5,7 @@ import type {
     CollectionCommentNotification,
     EpisodeNotification,
     FriendNotification,
-    NotificationsPagedResponse,
+    PagedResponse,
     RelatedReleaseNotification,
     ReleaseCommentNotification,
     ReleaseNotificationsPreferencesAPIResponse,
@@ -46,24 +46,24 @@ export async function GetAllNotifications(page: number, token: string): Promise<
     return getNotifications<AllNotificationsAPIResponse>('all', page, token)
 }
 
-export async function GetFriendsNotifications(page: number, token: string): Promise<NotificationsPagedResponse<FriendNotification>> {
-    return getNotifications<NotificationsPagedResponse<FriendNotification>>('friends', page, token)
+export async function GetFriendsNotifications(page: number, token: string): Promise<PagedResponse<FriendNotification>> {
+    return getNotifications<PagedResponse<FriendNotification>>('friends', page, token)
 }
 
-export async function GetRelatedReleaseNotifications(page: number, token: string): Promise<NotificationsPagedResponse<RelatedReleaseNotification>> {
-    return getNotifications<NotificationsPagedResponse<RelatedReleaseNotification>>('related/release', page, token)
+export async function GetRelatedReleaseNotifications(page: number, token: string): Promise<PagedResponse<RelatedReleaseNotification>> {
+    return getNotifications<PagedResponse<RelatedReleaseNotification>>('related/release', page, token)
 }
 
-export async function GetEpisodeNotifications(page: number, token: string): Promise<NotificationsPagedResponse<EpisodeNotification>> {
-    return getNotifications<NotificationsPagedResponse<EpisodeNotification>>('episodes', page, token)
+export async function GetEpisodeNotifications(page: number, token: string): Promise<PagedResponse<EpisodeNotification>> {
+    return getNotifications<PagedResponse<EpisodeNotification>>('episodes', page, token)
 }
 
-export async function GetReleaseCommentsNotifications(page: number, token: string): Promise<NotificationsPagedResponse<ReleaseCommentNotification>> {
-    return getNotifications<NotificationsPagedResponse<ReleaseCommentNotification>>('releaseComments', page, token)
+export async function GetReleaseCommentsNotifications(page: number, token: string): Promise<PagedResponse<ReleaseCommentNotification>> {
+    return getNotifications<PagedResponse<ReleaseCommentNotification>>('releaseComments', page, token)
 }
 
-export async function GetCollectionCommentsNotifications(page: number, token: string): Promise<NotificationsPagedResponse<CollectionCommentNotification>> {
-    return getNotifications<NotificationsPagedResponse<CollectionCommentNotification>>('collectionComments', page, token)
+export async function GetCollectionCommentsNotifications(page: number, token: string): Promise<PagedResponse<CollectionCommentNotification>> {
+    return getNotifications<PagedResponse<CollectionCommentNotification>>('collectionComments', page, token)
 }
 
 export async function MarkNotificationsAsRead(token: string): Promise<void> {

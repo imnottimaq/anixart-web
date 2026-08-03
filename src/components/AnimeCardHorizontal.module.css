@@ -27,6 +27,10 @@
   background: color-mix(in srgb, var(--text-color) 10%, var(--background-color));
 }
 
+.compact .poster { flex-basis: 117px; }
+.compact .anime-title { font-size: 18px; }
+.compact .anime-description { -webkit-line-clamp: 3; }
+
 .poster img {
   display: block;
   width: 100%;
@@ -79,6 +83,7 @@
 .anime-rating { display: inline-flex; align-items: center; gap: 3px; margin-left: 3px; color: var(--text-color); font-weight: 700; }
 .anime-rating img { width: 17px; height: 17px; }
 .anime-description { display: -webkit-box; margin: 0; overflow: hidden; color: color-mix(in srgb, var(--text-color) 68%, transparent); font-size: 15px; line-height: 1.4; -webkit-box-orient: vertical; -webkit-line-clamp: 4; }
+.comment-activity { margin: auto 0 0; color: var(--text-secondary); font-size: 13px; line-height: 1.2; }
 
 .status-watching { background-color: var(--status-watching); }
 .status-plan { background-color: var(--status-plan); }

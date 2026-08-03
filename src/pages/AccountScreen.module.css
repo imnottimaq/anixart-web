@@ -45,6 +45,10 @@
   gap: 14px;
 }
 
+.profile-card :global(.flex-row) {
+  align-items: flex-start;
+}
+
 .user-short img {
   width: clamp(64px, 7vw, 88px);
   aspect-ratio: 1;
@@ -96,6 +100,108 @@
   font-size: 13px;
   font-weight: 700;
   line-height: 1;
+}
+
+.friend-action {
+  display: grid;
+  min-width: 154px;
+  align-self: flex-start;
+  justify-items: end;
+  gap: 5px;
+  margin-left: auto;
+}
+
+.friend-action > span {
+  color: var(--status-dropped);
+  font-size: 12px;
+}
+
+.friend-action > .friend-request-notice {
+  color: var(--text-secondary);
+}
+
+.friend-button {
+  align-self: flex-start;
+  min-height: 0;
+  padding: 12px 18px;
+  border: 0;
+  border-radius: 2rem;
+  color: var(--background-color);
+  background: var(--accent-color);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.friend-button:disabled {
+  cursor: default;
+  opacity: 0.65;
+}
+
+.friend-status-none,
+.friend-status-1 {
+  background: var(--accent-color);
+}
+
+.friend-status-0 {
+  border-color: color-mix(in srgb, var(--text-color) 28%, transparent);
+  color: var(--text-secondary);
+  box-shadow: none;
+  background: transparent;
+}
+
+.friend-status-2 {
+  border-color: color-mix(in srgb, var(--status-watching) 65%, transparent);
+  color: var(--status-watching);
+  box-shadow: none;
+  background: color-mix(in srgb, var(--status-watching) 12%, transparent);
+}
+
+.edit-button {
+  align-self: flex-start;
+  min-height: 34px;
+  margin-left: auto;
+  padding: 6px 13px;
+  border: 1px solid var(--border-color);
+  border-radius: 11px;
+  color: var(--text-color);
+  background: color-mix(in srgb, var(--text-color) 5%, transparent);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.confirm-text {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: 1.45;
+}
+
+.confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 20px;
+}
+
+.confirm-actions button {
+  min-height: 36px;
+  padding: 8px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  color: var(--text-color);
+  background: transparent;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.confirm-actions .confirm-danger {
+  border-color: var(--status-dropped);
+  color: #fff;
+  background: var(--status-dropped);
 }
 
 .user-socials {
@@ -350,6 +456,34 @@
   font-weight: 700;
   letter-spacing: .04em;
   animation: loader-text 1.2s ease-in-out infinite;
+}
+
+.role {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 30px;
+  padding: 0 9px;
+  border: 1px solid;
+  border-radius: 9px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.user-roles {
+  display: flex;
+  flex-wrap: wrap;
+  flex-direction: row;
+  gap: 6px;
+  margin-top: 1vw;
+}
+
+.circle {
+  display: block;
+  border-radius: 1rem;
+  height: 11px;
+  width: 11px;
+  flex: 0 0 11px;
 }
 
 @keyframes overlay-in {
