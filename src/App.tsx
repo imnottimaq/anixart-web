@@ -78,17 +78,14 @@ function App() {
     };
   }, [userToken]);
 
-  // This connection intentionally lives above the router. Changing a page in
-  // the SPA must not make the server think that the user left the room.
   useEffect(() => {
+    const room = roomSocketRef.current
     if (!activeRoomId || userId <= 0) return;
-    roomSocketRef.current.connect(activeRoomId, getRoomParticipant(userId), () => {}, error => {
+    room.connect(activeRoomId, getRoomParticipant(userId), () => {}, error => {
       console.error('Ошибка фонового подключения к комнате:', error);
-      // The room may have been deleted after the browser tab was closed.
-      // Do not keep a stale room badge or retry its dead WebSocket forever.
       setActiveRoomId(null);
     }, () => setActiveRoomId(null));
-    return () => roomSocketRef.current.disconnect();
+    return () => room.disconnect();
   }, [activeRoomId, setActiveRoomId, userId]);
 
   useEffect(() => {

@@ -198,23 +198,17 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
     }, [roomId, userId, watchRoom]);
 
     useEffect(() => {
+        const room = roomSocketRef.current;
         if (!roomId || userId <= 0) return;
         const participant = getRoomParticipant(userId);
-        roomSocketRef.current.connect(roomId, participant, state => {
+        room.connect(roomId, participant, state => {
             setWatchRoom(state);
             const video = videoRef.current;
             if (!video || !state.media || state.media.releaseId !== animeId || state.media.episode !== episodeNumber) {
-                // The host may have just selected another episode. The socket
-                // can still deliver the previous room state first; never let
-                // that stale state redirect the host back to the old player.
                 if (state.hostId === userId && playerSession.dubId && playerSession.sourceId && episodeNumber !== undefined) return;
                 if (state.media) navigate(roomMediaUrl(roomId, state.media), { replace: true });
                 return;
             }
-
-            // The Worker sends an already-normalised position. Calculating it a
-            // second time on the client made a stale timestamp jump forward
-            // after pause → play.
             const targetTime = state.playback.position;
             applyingRoomStateRef.current = true;
             if (Math.abs(video.currentTime - targetTime) > .75) video.currentTime = targetTime;
@@ -226,18 +220,19 @@ function PlayerContent({ playerSession, onSessionChange, roomId }: { playerSessi
             setActiveRoomId(null);
             navigate('/together', { replace: true });
         });
-        const interval = window.setInterval(() => roomSocketRef.current.send({ type: 'sync_request' }), 15_000);
-        return () => { window.clearInterval(interval); roomSocketRef.current.disconnect(); };
+        const interval = window.setInterval(() => room.send({ type: 'sync_request' }), 15_000);
+        return () => { window.clearInterval(interval); room.disconnect(); };
     }, [animeId, episodeNumber, navigate, playerSession.dubId, playerSession.sourceId, roomId, setActiveRoomId, userId]);
 
     useEffect(() => {
+        const room = roomSocketRef.current
         const isCurrentRoomMedia = watchRoom?.media
             && watchRoom.media.releaseId === animeId
             && watchRoom.media.dubId === playerSession.dubId
             && watchRoom.media.sourceId === playerSession.sourceId
             && watchRoom.media.episode === episodeNumber;
         if (!roomId || !watchRoom || isCurrentRoomMedia || watchRoom.hostId !== userId || !playerSession.dubId || !playerSession.sourceId || episodeNumber === undefined) return;
-        roomSocketRef.current.send({
+        room.send({
             type: 'set_media',
             media: {
                 releaseId: animeId,

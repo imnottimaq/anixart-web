@@ -134,9 +134,13 @@ async function handleCreateFirstStage(
         if (data.code !== 0) throw new Error(data.message || "Ошибка создания аккаунта");
 
         setHash(data.hash);
-    } catch (err: any) {
-        console.error(err);
-        setErrorMsg(err.message || "Не удалось отправить код");
+    } catch (err: unknown) {
+        if (err instanceof Error){
+            console.error(err);
+            setErrorMsg(err.message || "Не удалось отправить код");
+        } else {
+            console.error("An unexpected error happened: ", String(err))
+        }
     }
 }
 
@@ -167,8 +171,12 @@ async function handleCreateSecondStage(
             setUserId(profileId ?? data.profileToken.id);
             alert("Аккаунт успешно создан! Вы вошли в аккаунт.");
         }
-    } catch (err: any) {
-        console.error(err);
-        setErrorMsg(err.message || "Ошибка при вводе кода");
+    } catch (err: unknown) {
+        if (err instanceof Error){
+            console.error(err);
+            setErrorMsg(err.message || "Не удалось отправить код");
+        } else {
+            console.error("An unexpected error happened: ", String(err))
+        }
     }
 }

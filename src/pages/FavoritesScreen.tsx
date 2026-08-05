@@ -140,7 +140,7 @@ export default function FavoritesScreen() {
                 }));
             })
             .finally(() => loadingRequestsRef.current.delete(requestKey));
-    }, [activePage, activeTab.hasMore, activeTab.page, currentPageIsLoaded, sort, userToken]);
+    }, [activePage, activeTab.hasMore, activeTab.page, currentPageIsLoaded, sort, userToken, api]);
 
     useEffect(() => {
         if (!currentPageIsLoaded || activeTab.isLoading || !activeTab.hasMore) return;

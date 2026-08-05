@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import AnimeCardHorizontal from '../components/AnimeCardHorizontal';
 import RemoteImage from '../components/RemoteImage';
@@ -40,14 +40,14 @@ export default function FranchiseScreen() {
     const [isLoadingMore, setIsLoadingMore] = useState(false);
     const [error, setError] = useState<string | null>(null);
 
-    const loadPage = async (page: number) => {
+    const loadPage = useCallback((async (page: number) => {
         const path = `/related/${franchiseId}/${page}`;
         try {
             return await api.get<RelatedResponse>(path);
         } catch {
             return api.getViaAgent<RelatedResponse>(path);
         }
-    };
+    }), [api, franchiseId])
 
     useEffect(() => {
         if (!Number.isFinite(franchiseId) || franchiseId <= 0) {
@@ -80,7 +80,7 @@ export default function FranchiseScreen() {
             });
 
         return () => { cancelled = true; };
-    }, [franchiseFromState, franchiseId]);
+    }, [franchiseFromState, franchiseId, loadPage]);
 
     const loadMore = async () => {
         if (isLoadingMore || currentPage >= totalPageCount) return;

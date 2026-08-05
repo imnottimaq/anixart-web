@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApi } from '../shared/apiClient';
 import { useUser } from '../shared/contexts/userContext';
@@ -149,13 +149,13 @@ export default function EditAccountScreen() {
     const [emailError, setEmailError] = useState<string | null>(null);
     const [isEmailSaving, setIsEmailSaving] = useState(false);
 
-    const getWithFallback = async <T,>(path: string) => {
+    const getWithFallback = useCallback((async <T,>(path: string) => {
         try {
             return await api.get<T>(path);
         } catch {
             return api.getViaAgent<T>(path);
         }
-    };
+    }), [api])
 
     useEffect(() => {
         if (!userToken) navigate('/account/login', { replace: true });
@@ -203,7 +203,7 @@ export default function EditAccountScreen() {
 
         void loadProfile();
         return () => { isCancelled = true; };
-    }, [api, userId, userToken]);
+    }, [api, userId, userToken, getWithFallback]);
 
     const updateDraft = <Key extends keyof ProfileDraft>(key: Key, value: ProfileDraft[Key]) => {
         setSaveMessage(null);

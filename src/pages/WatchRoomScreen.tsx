@@ -93,13 +93,14 @@ function ConnectedRoom({ roomId }: { roomId: string }) {
     }, [room?.media, room?.title]);
 
     useEffect(() => {
+        const socket = socketRef.current
         if (userId <= 0) { setMessage('Войдите в аккаунт, чтобы подключиться к комнате'); return; }
-        socketRef.current.connect(roomId, getRoomParticipant(userId), state => { setRoom(state); setMessage(''); }, setMessage, () => {
+        socket.connect(roomId, getRoomParticipant(userId), state => { setRoom(state); setMessage(''); }, setMessage, () => {
             setActiveRoomId(null);
             navigate('/together', { replace: true });
         });
-        const interval = window.setInterval(() => socketRef.current.send({ type: 'sync_request' }), 15_000);
-        return () => { window.clearInterval(interval); socketRef.current.disconnect(); };
+        const interval = window.setInterval(() => socket.send({ type: 'sync_request' }), 15_000);
+        return () => { window.clearInterval(interval); socket.disconnect(); };
     }, [navigate, roomId, setActiveRoomId, userId]);
 
     useEffect(() => {

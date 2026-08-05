@@ -1,24 +1,11 @@
-import { lazy, Suspense, type ReactNode } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import RootLayout from './RootLayout';
-import OverviewScreen from '../pages/OverviewScreen';
 
-const LatestReleasesScreen = lazy(() => import('../pages/LatestReleasesScreen'));
-const FavoritesScreen = lazy(() => import('../pages/FavoritesScreen'));
-const ReleaseScreen = lazy(() => import('../pages/ReleaseScreen'));
-const PlayerScreen = lazy(() => import('../pages/PlayerScreen'));
-const AccountScreen = lazy(() => import('../pages/AccountScreen'));
-const EditAccountScreen = lazy(() => import('../pages/EditAccountScreen'));
-const LoginScreen = lazy(() => import('../pages/LoginScreen'));
-const RecoverScreen = lazy(() => import('../pages/RecoverScreen'));
-const NewAccountScreen = lazy(() => import('../pages/NewAccountScreen'));
-const RandomAnime = lazy(() => import('../pages/RandomAnime'));
-const SettingsScreen = lazy(() => import('../pages/SettingsScreen'));
-const WatchRoomScreen = lazy(() => import('../pages/WatchRoomScreen'));
-const NotificationsScreen = lazy(() => import('../pages/NotificationsScreen'));
-const NotificationSettingsScreen = lazy(() => import('../pages/NotificationSettingsScreen'));
-const ReleaseNotificationSettingsScreen = lazy(() => import('../pages/ReleaseNotificationSettingsScreen'));
-const FranchiseScreen = lazy(() => import('../pages/FranchiseScreen'));
+import { LatestReleasesScreen, OverviewScreen, FavoritesScreen, ReleaseScreen, PlayerScreen, FranchiseScreen,
+    AccountScreen, EditAccountScreen, LoginScreen, RecoverScreen, NewAccountScreen, RandomAnime, SettingsScreen,
+    NotificationsScreen, NotificationSettingsScreen, ReleaseNotificationSettingsScreen, WatchRoomScreen
+ } from './components';
 
 function lazyPage(page: ReactNode) {
     return <Suspense fallback={<div className="route-loader" role="status">Загрузка…</div>}>{page}</Suspense>;

@@ -102,8 +102,8 @@ export class KodikParser {
     private static _endpointUrl = '/ftor';
 
     public static async getLatestLink(url: string): Promise<string | null> {
-        const endpointUrlRegex = new RegExp(/url:atob\(\"(?<encodedPath>[^"]+)\"\)/is);
-        const appPlayerPathRegex = new RegExp(/src="(?<path>\/assets\/js\/app\.player_single\..*?\.js)"\>/is);
+        const endpointUrlRegex = new RegExp(/url:atob\((?<encodedPath>[^"]+)\)/is);
+        const appPlayerPathRegex = new RegExp(/src="(?<path>\/assets\/js\/app\.player_single\..*?\.js)"/is);
 
         const playerResponse = await (await proxyFetch(url)).text();
         const appPlayerPath = playerResponse.match(appPlayerPathRegex)?.groups?.path;
@@ -342,7 +342,7 @@ export class AniLibriaParser {
 
         const request = await fetch(`https://${this._baseAniLibriaDomain}${this._endpointUrl}/${id}`);
 
-        let body = await request.json() as AniLibriaAnime;
+        const body = await request.json() as AniLibriaAnime;
 
         if (!body || typeof episode != 'string') return null;
         const ep = body.episodes.find(e => e.ordinal == parseInt(episode!)) ?? null;
@@ -377,8 +377,8 @@ export class SibnetParser {
     public static async getDirectLink(link: string): Promise<string | null> {
         const request = await proxyFetch(link);
 
-        let body = await request.text();
-        let match = this.srcMatch.exec(body);
+        const body = await request.text();
+        const match = this.srcMatch.exec(body);
 
         if (match) {
             const srcRequest = await proxyFetch(`https://${this._baseSibnetDomain}${match[1].replace(/"/g, '')}`, {
@@ -422,7 +422,7 @@ export class RutubeParser {
 
         if (directLinkMatch?.length == 0) return null;
 
-        let directLinks: Record<string, string> = {};
+        const directLinks: Record<string, string> = {};
 
         do {
             const width = directLinkMatch?.groups?.width ?? null;
@@ -483,7 +483,7 @@ export class VKVideoParser {
 
         if (directLinkMatch?.length == 0) return null;
 
-        let directLinks: Record<string, string> = {};
+        const directLinks: Record<string, string> = {};
 
         do {
             const width = directLinkMatch?.groups?.width ?? null;
@@ -528,7 +528,7 @@ export class OKParser {
 
         if (directLinkMatch?.length == 0) return null;
 
-        let directLinks: Record<string, string> = {};
+        const directLinks: Record<string, string> = {};
 
         do {
             const width = directLinkMatch?.groups?.width ?? null;

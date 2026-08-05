@@ -124,7 +124,7 @@ export default function AccountScreen(){
     };
 
     return (
-        <div className={styles['body']}>
+        <div className={styles['body']} key={userObject?.id}>
             <div className={styles['profile-grid']}>
                 <div className={styles['profile-card']}>
                     <div className="flex-row">

@@ -14,6 +14,9 @@ export function getRoomParticipant(userId: number): Omit<RoomParticipant, 'canCo
         if (identity?.id === userId && identity.login) {
             return { profileId: userId, login: identity.login, avatar: identity.avatar ?? null };
         }
-    } catch {  }
+    } catch(err: unknown) {
+        if (err instanceof Error)console.error(err);
+        else console.error("An unexpected error happened: ", String(err))
+    }
     return { profileId: userId, login: 'Пользователь', avatar: null };
 }

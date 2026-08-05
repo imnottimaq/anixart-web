@@ -103,7 +103,7 @@ export default function CommentComponent({ comment, releaseId, onReply, onEdit, 
         void appendReply();
 
         return () => {isCancelled = true}
-    }, [comment.id, newReply, userToken.userToken]);
+    }, [comment.id, newReply, userToken.userToken, api]);
 
     const toggleReplies = async () => {
         if (isRepliesShown) {
